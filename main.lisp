@@ -145,15 +145,14 @@
 	(setf (node-message head) "?")))))
 
 (defun destroy-connections (node)
-  (mapc (lambda (parent) (setf (node-childs parent)
-			       (remove node (node-childs parent))))
-	(node-parents node))
-  (setf (node-parents node) ())
-  
-  (mapc (lambda (child) (setf (node-parents child)
-			       (remove node (node-parents child))))
-	(node-childs node))
-  (setf (node-childs node) ()))
+  (dolist (child (node-childs node))
+    (setf (node-parents child)
+	  (remove node (node-parents child))))
+  (dolist (parent (node-parents node))
+    (setf (node-childs parent)
+	  (remove node (node-childs parent))))
+  (setf (node-childs  node) ())
+  (setf (node-parents node) ()))
 
 (defun insert-new-node ()
   (when (not (string= *new-node-name* ""))
@@ -188,19 +187,21 @@
   (with-slots (name parents childs) node
     (if (string= name " ")               ; (child1 child2 ...)
 	`(,@(mapcar #'compose-code
-		    (sort childs #'< :key #'node-x)))
+		    (setf childs
+			  (sort childs #'< :key #'node-x))))
 	(let ((symbol (read-from-string name)))
 	  (cond
 	    (childs                      ; (symbol child1 child2 ...)
 	     `(,symbol
 	       ,@(mapcar #'compose-code
-			 (sort childs #'< :key #'node-x))))
+			 (setf childs
+			       (sort childs #'< :key #'node-x)))))
 	    ((and (null parents)         ; (function-symbol)
 		  (ignore-errors (symbol-function symbol)))
 	     (list symbol))
 	    (t                           ; symbol
 	     symbol))))))
-      
+
 (defun eval-tree (node)
   (mapc (lambda (node)
 	  (with-slots (message error) node
