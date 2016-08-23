@@ -12,6 +12,22 @@
      amount))
 
 ;;;
+;;; color
+;;;
+
+(defun hsv-to-rgb (h s v)
+  (let* ((c (* v s))
+	 (x (* c (- 1 (abs (- (mod (/ h 60) 2) 1)))))
+	 (m (- v c))
+	 (rgb-n (cond ((<= 0   h  60) (list c x 0))
+		      ((<= 60  h 120) (list x c 0))
+		      ((<= 120 h 180) (list 0 c x))
+		      ((<= 180 h 240) (list 0 x c))
+		      ((<= 240 h 300) (list x 0 c))
+		      ((<= 300 h 360) (list c 0 x)))))
+    (mapcar (lambda (x) (+ x m)) rgb-n)))
+
+;;;
 ;;; lists
 ;;;
 
@@ -118,17 +134,31 @@
 
 (define-shape quad-shape
   (gl:begin :triangle-fan)
-  (gl:tex-coord 0 0) (gl:vertex -1 -1)
-  (gl:tex-coord 1 0) (gl:vertex  1 -1)
-  (gl:tex-coord 1 1) (gl:vertex  1  1)
-  (gl:tex-coord 0 1) (gl:vertex -1  1))
+  (gl:vertex -1 -1)
+  (gl:vertex  1 -1)
+  (gl:vertex  1  1)
+  (gl:vertex -1  1))
+
+(define-shape aligned-quad-shape
+  (gl:begin :triangle-fan)
+  (gl:vertex  0  0)
+  (gl:vertex  1  0)
+  (gl:vertex  1  1)
+  (gl:vertex  0  1))
 
 (define-shape quad-lines
   (gl:begin :line-loop)
-  (gl:tex-coord 0 0) (gl:vertex -1 -1)
-  (gl:tex-coord 1 0) (gl:vertex  1 -1)
-  (gl:tex-coord 1 1) (gl:vertex  1  1)
-  (gl:tex-coord 0 1) (gl:vertex -1  1))
+  (gl:vertex -1 -1)
+  (gl:vertex  1 -1)
+  (gl:vertex  1  1)
+  (gl:vertex -1  1))
+
+(define-shape aligned-quad-lines
+  (gl:begin :line-loop)
+  (gl:vertex  0  0)
+  (gl:vertex  1  0)
+  (gl:vertex  1  1)
+  (gl:vertex  0  1))
 
 (defun simple-line (x1 y1 x2 y2)
   (gl:bind-texture :texture-2d 0)
@@ -156,7 +186,9 @@
 
 (defun idler (window)
   "Every frame routines"
-  (let ((old-time (get-internal-real-time))
+  
+  (let ((old-time (get-internal-real-time)))
+	#|
 	(errors (nth-value
 		 1
 		 (ignore-errors ; in-game error messager
@@ -164,10 +196,13 @@
 		   
     (when errors
       (gl:load-identity)
-      (gl:color 1 1 1 1)
-      (text (make-text
-	     (write-to-string errors))
-	    0 0 0.4 0))
+      (gl:color 1 1 0)
+      (text "VLE ERROR"
+	    0 -0.8 0.03 0)
+      (text (write-to-string errors)
+	    0 -0.9 0.02 0)) |#
+
+    (main-screen *delta*)
     
     (gl:flush)
     (gl-swap-window window)

@@ -15,22 +15,33 @@
   name
   x y
   width
-  in-focus
-  selected
+  color
   message
   error
   parents
   childs)
 
-(defun node-update-width (node)
+(defun node-update (node)
   (setf (node-width node)
 	(+ (* (length (node-name node)) *node-width-char*)
-	   *node-width-bumps*))
+	   *node-width-bumps*)
+	(node-color node)
+	(if (ignore-errors (symbol-function
+			    (read-from-string (node-name node))))
+	    (hsv-to-rgb (mod (sxhash (node-name node)) 360)
+			0.75 0.55)
+	    (hsv-to-rgb 0 0 0.3)))
   node)
+
+(defun update-tree (node)
+  (with-slots (childs) node
+    (node-update node)
+    (when childs
+	(mapc #'update-tree childs))))
 
 (defun create-node (&key name x y)
   (let ((node (make-node :name name :x x :y y)))
-    (node-update-width node)))
+    (node-update node)))
 	     
 ;; main
 (defparameter *time* 0.0)
@@ -40,8 +51,10 @@
 ;; travel
 (defparameter *position-x* 0)
 (defparameter *position-y* 0)
-(defparameter *real-position-x* 0)
-(defparameter *real-position-y* 0)
+(defparameter *camera-x* 0)
+(defparameter *camera-y* 0)
+(defparameter *real-camera-x* 0)
+(defparameter *real-camera-y* 0)
 (defparameter *zoom* 1.0)
 (defparameter *real-zoom* 1.0)
 ;; *nodes* visual
@@ -52,6 +65,11 @@
 (defparameter *new-node-name* "")
 (defparameter *nodes* ())
 (defparameter *nodes-at-screen* ())
+(defparameter *selected-nodes* ())
+;; selector
+(defparameter *selector* nil)
+(defparameter *selector-x* 0)
+(defparameter *selector-y* 0)
 ;; inputs
 (defparameter *mouse-x* 0)
 (defparameter *mouse-y* 0)
@@ -63,16 +81,23 @@
 ;; think only at screen 
 ;;
 
-(defun node-at-screen (node)
-  (with-slots (x y) node
-    (let ((asp (/ *screen-width* *screen-height*)))
+(defun node-in-rect (node x1 y1 x2 y2)
+  (let ((x1 (min x1 x2))
+	(y1 (min y1 y2))
+	(x2 (max x1 x2))
+	(y2 (max y1 y2)))
+    (with-slots (x y) node
       (and
-       (< (- *position-x* (* (/ *zoom*) asp) 1)
-	  x
-	  (+ *position-x* (* (/ *zoom*) asp) 1))
-       (< (- *position-y* (/ *zoom*) 1)
-	  y
-	  (+ *position-y* (/ *zoom*) 1))))))
+       (< x1 x x2)
+       (< y1 y y2)))))
+
+(defun node-at-screen (node)
+  (let ((asp (/ *screen-width* *screen-height*)))
+    (node-in-rect node
+		  (- *camera-x* (* (/ *zoom*) asp) 1)
+		  (- *camera-y* (/ *zoom*) 1)
+		  (+ *camera-x* (* (/ *zoom*) asp) 1)
+		  (+ *camera-y* (/ *zoom*) 1))))
 
 (defun repose ()
   (setf *nodes-at-screen*
@@ -83,11 +108,11 @@
 ;;
 
 (defun draw-wires (node)
-  (with-slots (name x y childs mouse-at) node
-    (let* ((pulse-in  (/ (mod (+ *time* y) 6) 6))
+  (with-slots (x y color childs) node
+    (let* ((pulse-in  (/ (mod *time* 6) 6))
 	   (pulse-out (min 1 (* pulse-in 1.3))))
       (dolist (child childs)
-	(gl:color 0.5 0.5 0.5)
+	(apply #'gl:color color)
 	(simple-line x y (node-x child) (node-y child))
 	(gl:color 0 1 1)
 	(simple-line
@@ -97,20 +122,15 @@
 	 (+ (node-y child) (* (- y (node-y child)) pulse-out)))))))
 
 (defun draw-node (node)
-  (with-slots (name x y width in-focus
-		    selected message error parents) node
+  (with-slots (name x y width color
+		    message error parents) node
     (gl:push-matrix)
     (gl:translate x y 0)
-    (cond
-      (in-focus       (gl:color 0   0.2 0.5))
-      ((null parents) (gl:color 0.5 0.0 0.5))
-      (t              (gl:color 0.2 0.2 0.2)))
+    #|(if (null parents)
+    (gl:color 0.5 0.0 0.5)
+    (gl:color 0.2 0.2 0.2))|#
+    (apply #'gl:color color)
     (quad-shape 0 0 0 width *node-height*)
-    (when selected
-      (gl:color 0 1 1)
-      (quad-lines 0 0 0
-		  (+ width         0.02)
-		  (+ *node-height* 0.02)))
     (gl:color 1 1 1)
     (when (> *zoom* 0.3)
       (text name 0 0 0.04 0)
@@ -119,6 +139,18 @@
 	    (gl:color 1 1 0 0.5)	
 	    (gl:color 0 1 1))
 	(text message 0 0.1 0.04 0)))
+    (gl:pop-matrix)))
+
+(defun draw-selection (node &optional first)
+  (with-slots (x y width) node
+    (gl:push-matrix)
+    (gl:translate x y 0)
+    (if first
+	(gl:color 1 1 0)
+	(gl:color 0 1 1))
+    (quad-lines 0 0 0
+		(+ width         0.02)
+		(+ *node-height* 0.02))
     (gl:pop-matrix)))
 
 ;;
@@ -144,6 +176,12 @@
       (when (node-message head)
 	(setf (node-message head) "?")))))
 
+(defun connect-selected ()
+  (let ((parent (car *selected-nodes*))
+	(others (cdr *selected-nodes*)))
+    (mapc (lambda (node) (make-connection parent node))
+	  others)))
+
 (defun destroy-connections (node)
   (dolist (child (node-childs node))
     (setf (node-parents child)
@@ -161,13 +199,13 @@
 				 :y *position-y*)))
       (push new-node *nodes*)
       (setf *new-node-name* "")
-      (let ((selected-nodes (remove-if-not #'node-selected *nodes*)))
-	(cond ((< (length selected-nodes) 1)
-	       (setf (node-selected new-node) t)
-	       (incf *position-y* -0.2))
-	      ((= (length selected-nodes) 1)
-	       (make-connection (car selected-nodes) new-node)
-	       (incf *position-x* 0.2))))
+      (if *selected-nodes*
+	  (progn
+	    (make-connection (car *selected-nodes*) new-node)
+	    (incf *position-x* 0.2))
+	  (progn
+	    (pushnew new-node *selected-nodes*)
+	    (incf *position-y* -0.2)))
       (repose))))
 
 ;;
@@ -216,7 +254,8 @@
 		(setf error t)
 		(setf message (substitute #\Space #\Linefeed
 					  (princ-to-string cant)))))))
-	  (find-heads node)))
+	(find-heads node))
+  (mapc #'update-tree (find-heads node)))
 
 ;(eval (list (read-from-string "+") 
 ; 	     (read-from-string "2")
@@ -242,17 +281,12 @@
   (when *key-move*
     (set-mouse-position))
   
-  (if *mouse-left*
-      (let ((node (find-if #'node-in-focus *nodes-at-screen*)))
-	(when node
-	  (incf (node-x node) (lerp *mouse-x* (node-x node) 0.3))
-	  (incf (node-y node) (lerp *mouse-y* (node-y node) 0.3))
-	  (let ((new-child (find-if #'mouse-at-node-p
-				    (remove node *nodes-at-screen*))))
-	    (when new-child
-	      (make-connection node new-child)))))
-      (dolist (node *nodes-at-screen*)
-	(setf (node-in-focus node) (mouse-at-node-p node))))
+  (when (and *mouse-left* (not *selector*))
+    (dolist (node *selected-nodes*) 
+      (incf (node-x node) (- *mouse-x* *selector-x*))
+      (incf (node-y node) (- *mouse-y* *selector-y*)))
+    (setf *selector-x* *mouse-x*
+	  *selector-y* *mouse-y*))
   
   ; draw
   (gl:clear :color-buffer-bit)
@@ -263,25 +297,36 @@
     (snap-to-grid *position-x*)
     (snap-to-grid *position-y*))
 
-  (let ((slower (if *mouse-right* 0.5 0.05)))
-    (gl:translate (- (incf *real-position-x*
-			   (lerp *position-x*
-				 *real-position-x* slower)))
-		  (- (incf *real-position-y*
-			   (lerp *position-y*
-				 *real-position-y* slower)))
+  (let ((slower 0.5))
+    (gl:translate (- (incf *real-camera-x*
+			   (lerp *camera-x*
+				 *real-camera-x* slower)))
+		  (- (incf *real-camera-y*
+			   (lerp *camera-y*
+				 *real-camera-y* slower)))
 		  0))
 
   ; cross
   (gl:color 0.2 0.2 0.2)
   (simple-cross *position-x* *position-y* 0.1)
-  (when *mouse-left*
-    (gl:color 0 1 1)
-    (simple-cross *mouse-x* *mouse-y* 0.2))
 
   ; *nodes*
   (mapc #'draw-wires *nodes*)
   (mapc #'draw-node *nodes-at-screen*)
+  (when *selected-nodes* 
+    (draw-selection (car *selected-nodes*) t)
+    (mapc #'draw-selection (cdr *selected-nodes*)))
+
+  ; selector
+  (when *selector*
+    (let* ((x (min *selector-x* *mouse-x*))
+	   (y (min *selector-y* *mouse-y*))
+	   (w (- (max *selector-x* *mouse-x*) x))
+	   (h (- (max *selector-y* *mouse-y*) y)))
+      (gl:color 0.5 0.7 1 0.3)
+      (aligned-quad-shape x y 0 w h)
+      (gl:color 0.5 0.7 1)
+      (aligned-quad-lines x y 0 w h)))
   
   ; gui
   (gl:load-identity)
@@ -295,10 +340,37 @@
 
 (defun press-mouse-left ()
   (setf *mouse-left* t)
-  (dolist (node *nodes-at-screen*)
-    (setf (node-selected node) (mouse-at-node-p node)))
-  (snap-to-grid *mouse-x*)
-  (snap-to-grid *mouse-y*))
+  (let ((select (find-if #'mouse-at-node-p *nodes-at-screen*)))
+    (if select
+	(progn
+	  (if (find select *selected-nodes*)
+	      (setf *selected-nodes*
+		    (cons select (remove select *selected-nodes*)))
+	      (setf *selected-nodes* (list select)))
+	  (snap-to-grid *mouse-x*)
+	  (snap-to-grid *mouse-y*))
+	(setf *selector* t)))
+  (setf *selector-x* *mouse-x*
+	*selector-y* *mouse-y*))
+
+(defun release-mouse-left ()
+  (setf *mouse-left* nil)
+  (when *selector*
+    (setf *selector* nil)
+    (let ((selected (remove-if-not
+		     (lambda (node)
+		       (node-in-rect node
+				     *selector-x* *selector-y*
+				     *mouse-x* *mouse-y*))
+		     *nodes-at-screen*)))
+      (setf *selected-nodes* (if selected selected ())))))
+
+(defun press-mouse-right ()
+  (setf *mouse-right* t)
+  (let ((select (find-if #'mouse-at-node-p *nodes-at-screen*)))
+    (when select
+        (setf *selected-nodes*
+	      (cons select (remove select *selected-nodes*))))))
 
 ;;
 ;; init and input setup
@@ -337,7 +409,7 @@
 			       (scancode-value keysym))
 			  (:scancode-tab
 			   (mapc #'eval-tree
-				 (remove-if-not #'node-selected *nodes*)))
+				 *selected-nodes*))
 			  (:scancode-return
 			   (insert-new-node))
 			  (:scancode-backspace
@@ -345,41 +417,48 @@
 			     (setf *new-node-name*
 				   (subseq *new-node-name* 0
 					   (- (length *new-node-name*) 1)))))
-			  (:scancode-delete 
+			  (:scancode-delete
 			   (mapc #'destroy-connections
-				 (remove-if-not #'node-selected *nodes*)))
-			  (:scancode-f11
-			   (full-screen window))
+				 *selected-nodes*)
+			   (setf *nodes*
+				 (set-difference *nodes*
+						 *selected-nodes*)
+				 *selected-nodes* ())
+			   (repose))
+			  (:scancode-kp-7
+			   (connect-selected))
+			  (:scancode-kp-1
+			   (mapc #'destroy-connections
+				 *selected-nodes*))
 			  
-			  (:scancode-lctrl
-			   (setf *mouse-right* t))
 			  (:scancode-lalt
 			   (press-mouse-left))
+			  (:scancode-lctrl
+			   (press-mouse-right))
 			  (:scancode-kp-4
 			   (setf *key-move* t)
-			   (incf *position-x* -0.2)
-			   (repose))
+			   (incf *position-x* -0.2))
 			  (:scancode-kp-6
 			   (setf *key-move* t)
-			   (incf *position-x* 0.2)
-			   (repose))
+			   (incf *position-x* 0.2))
 			  (:scancode-kp-8
 			   (setf *key-move* t)
-			   (incf *position-y* 0.2)
-			   (repose))
+			   (incf *position-y* 0.2))
 			  (:scancode-kp-2
 			   (setf *key-move* t)
-			   (incf *position-y* -0.2)
-			   (repose))))
+			   (incf *position-y* -0.2))
+			  
+			  (:scancode-f11
+			   (full-screen window))))
 	  (:keyup       (:keysym keysym)
 			(case (scancode-symbol
 			       (scancode-value keysym))
 			  (:scancode-escape
 			   (push-event :quit))
-			  (:scancode-lctrl
-			   (setf *mouse-right* nil))
 			  (:scancode-lalt
-			   (setf *mouse-left* nil))))
+			   (release-mouse-left))
+			  (:scancode-lctrl
+			   (setf *mouse-right* nil))))
 	  
 	  (:mousemotion (:x x :y y :xrel xrel :yrel yrel)
 			(setf *key-move* nil)
@@ -391,28 +470,32 @@
 				 (+ (* (/ (- x half-width)
 					  half-width *zoom*)
 				       asp)
-				    *position-x*))
+				    *camera-x*))
 				*mouse-y*
 				(float
 				 (+ (/ (- y half-height)
 				       half-height *zoom* -1)
-				    *position-y*)))
-			  (when *mouse-left*
+				    *camera-y*)))
+			  (when (and *mouse-left* (not *selector*))
 			    (snap-to-grid *mouse-x*)
 			    (snap-to-grid *mouse-y*))
 			  (when *mouse-right*
-			    (incf *position-x*
+			    (incf *camera-x*
 				  (/ xrel half-height *zoom* -1))
-			    (incf *position-y*
+			    (incf *camera-y*
 				  (/ yrel half-height *zoom*))
 			    (repose))))
 	  (:mousebuttondown (:button button)
 			    (case button
 			      (1 (press-mouse-left))
-			      (3 (setf *mouse-right* t))))
+			      (2 (setf *position-x* *mouse-x*
+				       *position-y* *mouse-y*)
+				 (snap-to-grid *position-x*)
+				 (snap-to-grid *position-y*))
+			      (3 (press-mouse-right))))
 	  (:mousebuttonup   (:button button)
 			    (case button
-			      (1 (setf *mouse-left* nil))
+			      (1 (release-mouse-left))
 			      (3 (setf *mouse-right* nil))))
 	  (:mousewheel      (:y y)
 			    (setf *zoom* (max (min (+ *zoom* (* y 0.1))
