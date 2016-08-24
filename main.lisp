@@ -193,20 +193,25 @@
   (setf (node-parents node) ()))
 
 (defun insert-new-node ()
-  (when (not (string= *new-node-name* ""))
-    (let ((new-node (create-node :name *new-node-name*
-				 :x *position-x*
-				 :y *position-y*)))
-      (push new-node *nodes*)
-      (setf *new-node-name* "")
-      (if *selected-nodes*
-	  (progn
-	    (make-connection (car *selected-nodes*) new-node)
-	    (incf *position-x* 0.2))
-	  (progn
-	    (pushnew new-node *selected-nodes*)
-	    (incf *position-y* -0.2)))
-      (repose))))
+  (if (string= *new-node-name* "")
+      (let ((node (car *nodes*)))
+	(when node
+	  (setf *selected-nodes* (list (car *nodes*)))
+	  (setf *position-y* (- (node-y node) 0.2))
+	  (setf *position-x* (node-x node))))
+      (let ((new-node (create-node :name *new-node-name*
+				   :x *position-x*
+				   :y *position-y*)))
+	(push new-node *nodes*)
+	(setf *new-node-name* "")
+	(if *selected-nodes*
+	    (progn
+	      (make-connection (car *selected-nodes*) new-node)
+	      (incf *position-x* 0.2))
+	    (progn
+	      (pushnew new-node *selected-nodes*)
+	      (incf *position-y* -0.2)))
+	(repose))))
 
 ;;
 ;; evaluation
@@ -307,8 +312,9 @@
 		  0))
 
   ; cross
-  (gl:color 0.2 0.2 0.2)
-  (simple-cross *position-x* *position-y* 0.1)
+  (let ((flicker (+ (abs (* (sin *time*) 0.6)) 0.2)))
+    (gl:color 0 flicker flicker)
+    (simple-cross *position-x* *position-y* 0.1))
 
   ; *nodes*
   (mapc #'draw-wires *nodes*)
@@ -363,7 +369,14 @@
 				     *selector-x* *selector-y*
 				     *mouse-x* *mouse-y*))
 		     *nodes-at-screen*)))
-      (setf *selected-nodes* (if selected selected ())))))
+      (if selected
+	  (setf *selected-nodes* selected)
+	  (progn
+	    (setf *selected-nodes* ())
+	    (setf *position-x* *mouse-x*
+		  *position-y* *mouse-y*)
+	    (snap-to-grid *position-x*)
+	    (snap-to-grid *position-y*))))))
 
 (defun press-mouse-right ()
   (setf *mouse-right* t)
