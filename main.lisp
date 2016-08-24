@@ -2,7 +2,7 @@
 ;; Visual List Editor
 ;;
 
-(ql:quickload '(:cl-opengl :sdl2-ttf :sdl2-image))
+(ql:quickload '(:swank :cl-opengl :sdl2-ttf :sdl2-image))
 
 (defpackage :vle
   (:use :cl :cl-opengl :sdl2))
@@ -152,6 +152,24 @@
 		(+ width         0.02)
 		(+ *node-height* 0.02))
     (gl:pop-matrix)))
+
+(defun draw-args-list (node)
+  (with-slots (name x y) node
+    (gl:push-matrix)
+    (gl:translate x y 0)
+    (gl:color 1 1 1 0.5)
+    (text (princ-to-string
+	   (or
+	    (ignore-errors
+	      (sb-impl::%fun-lambda-list
+	       (macro-function (read-from-string name))))
+	    (ignore-errors
+	      (sb-impl::%fun-lambda-list
+	       (symbol-function (read-from-string name))))
+	    " "))
+	  0 -0.15 0.04 0)
+    (gl:pop-matrix)))
+  
 
 ;;
 ;; nodes utils
@@ -322,6 +340,11 @@
   (when *selected-nodes* 
     (draw-selection (car *selected-nodes*) t)
     (mapc #'draw-selection (cdr *selected-nodes*)))
+
+  ; arguments tip
+  (let ((node (find-if #'mouse-at-node-p *nodes-at-screen*)))
+    (when node
+      (draw-args-list node)))
 
   ; selector
   (when *selector*
