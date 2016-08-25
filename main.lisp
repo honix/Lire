@@ -2,10 +2,10 @@
 ;; Visual List Editor
 ;;
 
-(ql:quickload '(:swank :cl-opengl :sdl2-ttf :sdl2-image))
+(ql:quickload '(:cl-opengl :sdl2-ttf :sdl2-image))
 
 (defpackage :vle
-  (:use :cl :cl-opengl :sdl2))
+  (:use :cl :sdl2))
 
 (in-package :vle)
 
@@ -160,12 +160,12 @@
     (gl:color 1 1 1 0.5)
     (text (princ-to-string
 	   (or
-	    (ignore-errors
-	      (sb-impl::%fun-lambda-list
-	       (macro-function (read-from-string name))))
-	    (ignore-errors
-	      (sb-impl::%fun-lambda-list
-	       (symbol-function (read-from-string name))))
+	    #+sbcl(ignore-errors
+		    (sb-impl::%fun-lambda-list
+		     (macro-function (read-from-string name))))
+	    #+sbcl(ignore-errors
+		    (sb-impl::%fun-lambda-list
+		     (symbol-function (read-from-string name))))
 	    " "))
 	  0 -0.15 0.04 0)
     (gl:pop-matrix)))
@@ -263,21 +263,24 @@
 	    (t                           ; symbol
 	     symbol))))))
 
+(defun eval-node (node)
+  "Node must be head of tree"
+  (with-slots (message error) node
+    (let ((cant
+	   (nth-value 1 (ignore-errors
+			  (let ((result
+				 (write-to-string
+				  (eval (compose-code node)))))
+			    (setf error nil)
+			    (setf message result))))))
+      (when cant
+	(setf error t)
+	(setf message (substitute #\Space #\Linefeed
+				  (princ-to-string cant)))))))
+
 (defun eval-tree (node)
-  (mapc (lambda (node)
-	  (with-slots (message error) node
-	    (let ((cant
-		   (nth-value 1 (ignore-errors
-				  (let ((result
-					 (write-to-string
-					  (eval (compose-code node)))))
-				    (setf error nil)
-				    (setf message result))))))
-	      (when cant
-		(setf error t)
-		(setf message (substitute #\Space #\Linefeed
-					  (princ-to-string cant)))))))
-	(find-heads node))
+  "Take some node from tree, find heads and evaluate"
+  (mapc #'eval-node (find-heads node))
   (mapc #'update-tree (find-heads node)))
 
 ;(eval (list (read-from-string "+") 
@@ -555,6 +558,7 @@
 			(clean-texture-hash)
 			t))))))
 
-(main)
+; thread to make slime work well
+(sb-thread:make-thread #'main)
 
     
