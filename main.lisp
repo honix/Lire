@@ -277,11 +277,16 @@
 	(setf error t)
 	(setf message (substitute #\Space #\Linefeed
 				  (princ-to-string cant)))))))
+				  
+(defun eval-node-threaded (node)
+    (sb-thread:make-thread #'eval-node 
+                           :arguments (list node)))
 
 (defun eval-tree (node)
   "Take some node from tree, find heads and evaluate"
-  (mapc #'eval-node (find-heads node))
-  (mapc #'update-tree (find-heads node)))
+  (let ((heads (find-heads node)))
+	(mapc #'eval-node-threaded heads)
+        (mapc #'update-tree heads)))
 
 ;(eval (list (read-from-string "+") 
 ; 	     (read-from-string "2")
