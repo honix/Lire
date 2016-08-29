@@ -2,47 +2,36 @@
 ;; Visual List Editor
 ;;
 
-(ql:quickload '(:cl-opengl :sdl2-ttf :sdl2-image))
+(ql:quickload '(:swank-client :cl-opengl :sdl2-ttf :sdl2-image))
 
 (defpackage :vle
   (:use :cl :sdl2))
 
 (in-package :vle)
 
-(load (merge-pathnames "utils.lisp"))
+;;
+;; estabilish connection using swank
+;;
 
-(defstruct node
-  name
-  x y
-  width
-  color
-  message
-  error
-  parents
-  childs)
+(defparameter lisp
+  (sb-ext:run-program
+   "/usr/local/bin/sbcl"
+   '("--load" "server.lisp")))
+(defparameter swank-connection
+  (swank-client:slime-connect
+   (sb-unix:unix-gethostname)
+   10000))
+(assert swank-connection)
 
-(defun node-update (node)
-  (setf (node-width node)
-	(+ (* (length (node-name node)) *node-width-char*)
-	   *node-width-bumps*)
-	(node-color node)
-	(if (ignore-errors (symbol-function
-			    (read-from-string (node-name node))))
-	    (hsv-to-rgb (mod (sxhash (node-name node)) 360)
-			0.75 0.55)
-	    (hsv-to-rgb 0 0 0.3)))
-  node)
+(defun swank-function-symbol-p (symbol)
+  (swank-client:slime-eval
+   `(not (null (ignore-errors (symbol-function ',symbol))))
+   swank-connection))
 
-(defun update-tree (node)
-  (with-slots (childs) node
-    (node-update node)
-    (when childs
-	(mapc #'update-tree childs))))
+;;
+;; parameters
+;;
 
-(defun create-node (&key name x y)
-  (let ((node (make-node :name name :x x :y y)))
-    (node-update node)))
-	     
 ;; main
 (defparameter *time* 0.0)
 (defparameter *delta* 0.0)
@@ -76,6 +65,48 @@
 (defparameter *key-move* nil)
 (defparameter *mouse-left* nil)
 (defparameter *mouse-right* nil)
+
+;;
+;; modules
+;;
+
+(load "utils.lisp")
+
+;;
+;; basic node
+;;
+
+(defstruct node
+  name
+  x y
+  width
+  color
+  message
+  error
+  parents
+  childs)
+
+(defun node-update (node)
+  (setf (node-width node)
+	(+ (* (length (node-name node)) *node-width-char*)
+	   *node-width-bumps*)
+	(node-color node)
+	(if (ignore-errors (swank-function-symbol-p
+			    (read-from-string (node-name node))))
+	    (hsv-to-rgb (mod (sxhash (node-name node)) 360)
+			0.75 0.55)
+	    (hsv-to-rgb 0 0 0.3)))
+  node)
+
+(defun update-tree (node)
+  (with-slots (childs) node
+    (node-update node)
+    (when childs
+	(mapc #'update-tree childs))))
+
+(defun create-node (&key name x y)
+  (let ((node (make-node :name name :x x :y y)))
+    (node-update node)))
 
 ;;
 ;; think only at screen 
@@ -258,7 +289,7 @@
 			 (setf childs
 			       (sort childs #'< :key #'node-x)))))
 	    ((and (null parents)         ; (function-symbol)
-		  (ignore-errors (symbol-function symbol)))
+		  (swank-function-symbol-p symbol))
 	     (list symbol))
 	    (t                           ; symbol
 	     symbol))))))
@@ -266,11 +297,14 @@
 (defun eval-node (node)
   "Node must be head of tree"
   (with-slots (message error) node
+    (setf message "...")
     (let ((cant
 	   (nth-value 1 (ignore-errors
 			  (let ((result
-				 (write-to-string
-				  (eval (compose-code node)))))
+				 (swank-client:slime-eval
+				  `(write-to-string
+				    ,(compose-code node))
+				   swank-connection)))
 			    (setf error nil)
 			    (setf message result))))))
       (when cant
@@ -426,12 +460,12 @@
     (sdl2-ttf:init)
     (sdl2:gl-set-attr :multisamplebuffers 1) 
     (sdl2:gl-set-attr :multisamplesamples 2) 
-    (with-window (window :title "VLE"
+    (with-window (vle-window :title "VLE"
 			 :w *screen-width*
 			 :h *screen-height*
 			 :flags '(:shown :resizable :opengl))
-      (with-gl-context (gl-context window)
-	(gl-make-current window gl-context)	
+      (with-gl-context (gl-context vle-window)
+	(gl-make-current vle-window gl-context)
 	(gl:enable :texture-2d)
 	(gl:enable :blend)
 	(gl:blend-func :src-alpha :one-minus-src-alpha)
@@ -493,7 +527,7 @@
 			   (incf *position-y* -0.2))
 			  
 			  (:scancode-f11
-			   (full-screen window))))
+			   (full-screen vle-window))))
 	  (:keyup       (:keysym keysym)
 			(case (scancode-symbol
 			       (scancode-value keysym))
@@ -548,7 +582,7 @@
 			    (repose))
 			     
 	  (:idle        ()
-			(idler window))
+			(idler vle-window))
 	  (:windowevent (:event event :data1 width :data2 height)
 			(when (=
 			       event
@@ -561,9 +595,11 @@
 			(sdl2-ttf:quit)
 			(clean-text-hash)
 			(clean-texture-hash)
+			(sb-ext:process-close lisp)
 			t))))))
 
 ; thread to make slime work well
 (sb-thread:make-thread #'main)
+
 
     
