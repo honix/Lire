@@ -1,9 +1,9 @@
-(ql:quickload :swank-client)
+;;
+;; Startup lisp-server
+;; Copied from https://github.com/brown/swank-client
+;;
 
-;; crazy stuff. in future there will be no packages
-(defpackage :vle
-  (:use :cl))
-(in-package :vle)
+(ql:quickload :swank-client)
 
 (defvar *swank-client-port* 10000)
 
