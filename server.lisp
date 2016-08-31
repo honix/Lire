@@ -1,9 +1,15 @@
 ;;
 ;; Startup lisp-server
-;; Copied from https://github.com/brown/swank-client
 ;;
 
-(ql:quickload :swank-client)
+(ql:quickload :swank)
+
+(swank:create-server :port 10000 :dont-close t)
+
+
+;; Copied from https://github.com/brown/swank-client
+
+#|
 
 (defvar *swank-client-port* 10000)
 
@@ -33,4 +39,9 @@ interface, to handle Swank Client connection requests."
     (start-swank-server-for-swank-client *swank-client-port*))
   (wait-for-swank-thread))
 
+(defun e-eval (form)
+  (handler-case form (error (er) (values nil er))))
+
 (main)
+
+|#

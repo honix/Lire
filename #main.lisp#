@@ -16,7 +16,6 @@
 (defparameter lisp nil)
 (defparameter swank-connection nil)
 
-#|
 (defun run-lisp ()
   (setf lisp
     (sb-ext:run-program
@@ -25,7 +24,7 @@
   (loop
      (setf swank-connection
 	   (swank-client:slime-connect
-	    (sb-unix:unix-gethostname)
+	    (uiop:hostname)
 	    10000))
      (if swank-connection (return) (sleep 2))))
 
@@ -39,14 +38,6 @@
 
 (defun swank-function-symbol-p (symbol)
   (swank-eval
-   `(not (null (ignore-errors (symbol-function ',symbol))))))
-|#
-
-(defun swank-eval (form)
-  (eval form))
-
-(defun swank-function-symbol-p (symbol)
-  (eval
    `(not (null (ignore-errors (symbol-function ',symbol))))))
 
 ;;
@@ -620,7 +611,6 @@
 			(clean-texture-hash)
 			t))))))
 
-#|
 (defun run ()
   (unwind-protect
        (progn
@@ -637,9 +627,6 @@
       (princ "Lisp closed"))))
 
 (sb-thread:make-thread #'run)
-|#
-
-(sb-thread:make-thread #'main)
 
 
 
