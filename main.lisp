@@ -312,7 +312,10 @@
 
 (defun eval-tree (node)
   "Take some node from tree, find heads and evaluate"
-  (let ((heads (find-heads node)))
+  (let ((heads (if (listp node)
+		   (remove-duplicates
+		    (flatten (mapcar #'find-heads node)))
+		   (find-heads node))))
 	(mapc #'eval-node-threaded heads)
         (mapc #'update-tree heads)))
 
@@ -480,8 +483,7 @@
 			(case (scancode-symbol
 			       (scancode-value keysym))
 			  (:scancode-tab
-			   (mapc #'eval-tree
-				 *selected-nodes*))
+			   (eval-tree *selected-nodes*))
 			  (:scancode-return
 			   (insert-new-node))
 			  (:scancode-backspace
