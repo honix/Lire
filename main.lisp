@@ -2,7 +2,7 @@
 ;; Visual List Editor
 ;;
 
-(ql:quickload '(:swank-client :cl-opengl :sdl2-ttf :sdl2-image))
+(ql:quickload '(:cl-opengl :sdl2 :sdl2-ttf :sdl2-image))
 
 (defpackage :vle
   (:use :cl :sdl2))
@@ -10,43 +10,14 @@
 (in-package :vle)
 
 ;;
-;; estabilish connection using swank
+;; 
 ;;
 
-(defparameter lisp nil)
-(defparameter swank-connection nil)
-
-#|
-(defun run-lisp ()
-  (setf lisp
-    (sb-ext:run-program
-     "/usr/local/bin/sbcl"
-     '("--load" "server.lisp") :wait nil))
-  (loop
-     (setf swank-connection
-	   (swank-client:slime-connect
-	    (sb-unix:unix-gethostname)
-	    10000))
-     (if swank-connection (return) (sleep 2))))
-
-(defun swank-eval (form)
-  (when swank-connection
-    (swank-client:slime-eval
-     ;`(handler-case ,form (error (er) (values nil er)))
-     ;`(e-eval ,form)
-     form
-     swank-connection)))
-
-(defun swank-function-symbol-p (symbol)
-  (swank-eval
-   `(not (null (ignore-errors (symbol-function ',symbol))))))
-|#
-
-(defun swank-eval (form)
+(defun e-eval (form)
   (eval form))
 
-(defun swank-function-symbol-p (symbol)
-  (eval
+(defun function-symbol-p (symbol)
+  (e-eval
    `(not (null (ignore-errors (symbol-function ',symbol))))))
 
 ;;
@@ -112,7 +83,7 @@
 	(+ (* (length (node-name node)) *node-width-char*)
 	   *node-width-bumps*)
 	(node-color node)
-	(if (ignore-errors (swank-function-symbol-p
+	(if (ignore-errors (function-symbol-p
 			    (read-from-string (node-name node))))
 	    (hsv-to-rgb (mod (sxhash (node-name node)) 360)
 			0.75 0.55)
@@ -210,7 +181,7 @@
     (gl:push-matrix)
     (gl:translate x y 0)
     (gl:color 1 1 1 0.5)
-    (text (or (swank-eval
+    (text (or (e-eval
 	       `(princ-to-string
 		 (or
 		  #+sbcl(ignore-errors
@@ -303,7 +274,7 @@
 	`(,@(mapcar #'compose-code
 		    (setf childs
 			  (sort childs #'< :key #'node-x))))
-	(let ((symbol (swank-eval
+	(let ((symbol (e-eval
 		       `(read-from-string ,name))))
 	  (cond
 	    (childs                      ; (symbol child1 child2 ...)
@@ -312,7 +283,7 @@
 			 (setf childs
 			       (sort childs #'< :key #'node-x)))))
 	    ((and (null parents)         ; (function-symbol)
-		  (swank-function-symbol-p symbol))
+		  (function-symbol-p symbol))
 	     (list symbol))
 	    (t                           ; symbol
 	     symbol))))))
@@ -321,18 +292,19 @@
   "Node must be head of tree"
   (with-slots (message error) node
     (setf message "...")
-    (let* ((ev (swank-eval
-	       `(ignore-errors
-		  (write-to-string ,(compose-code node)))))
-	   (er (nth-value 1 ev)))
-      (if er
+    (let* ((eva (multiple-value-list (e-eval
+				      `(ignore-errors
+					 ,(compose-code node)))))
+	   (res (first  eva))
+	   (err (second eva)))
+      (if err
 	  (progn
 	    (setf error t)
 	    (setf message (substitute #\Space #\Linefeed
-				      (princ-to-string er))))
+				      (write-to-string err))))
 	  (progn
 	    (setf error nil)
-	    (setf message ev))))))
+	    (setf message (write-to-string res)))))))
 				  
 (defun eval-node-threaded (node)
     (sb-thread:make-thread #'eval-node
@@ -428,9 +400,8 @@
 	    "enter symbol"
 	    *new-node-name*)
 	0 -0.8 0.03 0)
-  (when swank-connection 
-    (text "|" 0 -0.9 0.03 (* *time* 12))
-    (text "|" 0 -0.9 0.03 (* *time* 42))))
+  (text "|" 0 -0.9 0.03 (* *time* 12))
+  (text "|" 0 -0.9 0.03 (* *time* 42)))
 
 (defun press-mouse-left ()
   (setf *mouse-left* t)
@@ -620,28 +591,5 @@
 			(clean-texture-hash)
 			t))))))
 
-#|
-(defun run ()
-  (unwind-protect
-       (progn
-	 (princ "Lisp running..")
-	 (run-lisp)
-	 (princ "VLE running..")
-	 (main))
-    (progn
-      (princ "Lisp close..")
-      (when lisp
-	(swank-client:slime-close swank-connection)
-        (sb-ext:process-wait lisp)
-	(sb-ext:process-close lisp))
-      (princ "Lisp closed"))))
-
-(sb-thread:make-thread #'run)
-|#
 
 (sb-thread:make-thread #'main)
-
-
-
-
-    
