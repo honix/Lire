@@ -29,6 +29,7 @@
 (defparameter *delta* 0.0)
 (defparameter *screen-width* 800)
 (defparameter *screen-height* 600)
+(defparameter *show-editor* t)
 ;; travel
 (defparameter *position-x* 0)
 (defparameter *position-y* 0)
@@ -181,16 +182,16 @@
     (gl:push-matrix)
     (gl:translate x y 0)
     (gl:color 1 1 1 0.5)
-    (text (or (e-eval
-	       `(princ-to-string
-		 (or
-		  #+sbcl(ignore-errors
-			  (sb-impl::%fun-lambda-list
-			   (macro-function (read-from-string ,name))))
-		  #+sbcl(ignore-errors
-			  (sb-impl::%fun-lambda-list
-			   (symbol-function (read-from-string ,name)))))))
-		  " ")
+    (text (e-eval
+	   `(princ-to-string
+	     (or
+	      #+sbcl(ignore-errors
+		      (sb-impl::%fun-lambda-list
+		       (macro-function (read-from-string ,name))))
+	      #+sbcl(ignore-errors
+		      (sb-impl::%fun-lambda-list
+		       (symbol-function (read-from-string ,name))))
+	      " ")))
 	  0 -0.15 0.04 0)
     (gl:pop-matrix)))
   
@@ -335,11 +336,21 @@
   (setf *mouse-x* *position-x*
 	*mouse-y* *position-y*))
 
+(defun draw ()) ; place-holder
+
 (defun main-screen (delta)
   "Update and render"
   ; update
   (incf *time* delta)
 
+  ; draw back render
+  (gl:clear :color-buffer-bit)
+  (ignore-errors (draw))
+
+  (when (not *show-editor*)
+    (return-from main-screen))
+  
+  ; update vle
   (when *key-move*
     (set-mouse-position))
   
@@ -350,8 +361,8 @@
     (setf *selector-x* *mouse-x*
 	  *selector-y* *mouse-y*))
   
-  ; draw
-  (gl:clear :color-buffer-bit)
+  ; draw vle
+  (gl:load-identity)
   (gl:scale (incf *real-zoom* (lerp *zoom* *real-zoom* 0.3))
 	    *real-zoom* 0)
 
@@ -509,6 +520,11 @@
 			   (press-mouse-left))
 			  (:scancode-lctrl
 			   (press-mouse-right))
+			  (:scancode-kp-3
+			   (setf *show-editor* (not *show-editor*)))
+			  (:scancode-kp-5
+			   (setf *camera-x* *position-x*
+				 *camera-y* *position-y*))
 			  (:scancode-kp-4
 			   (setf *key-move* t)
 			   (incf *position-x* -0.2))
