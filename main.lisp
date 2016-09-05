@@ -138,7 +138,7 @@
       (dolist (child childs)
 	(apply #'gl:color color)
 	(simple-line x y (node-x child) (node-y child))
-	(gl:color 0 1 1)
+	(gl:color 1 1 1 0.5)
 	(simple-line
 	 (+ (node-x child) (* (- x (node-x child)) pulse-in))
 	 (+ (node-y child) (* (- y (node-y child)) pulse-in))
@@ -360,15 +360,17 @@
       (incf (node-y node) (- *mouse-y* *selector-y*)))
     (setf *selector-x* *mouse-x*
 	  *selector-y* *mouse-y*))
-  
-  ; draw vle
-  (gl:load-identity)
-  (gl:scale (incf *real-zoom* (lerp *zoom* *real-zoom* 0.3))
-	    *real-zoom* 0)
 
   (when (not (or *mouse-right* *key-move*))
     (snap-to-grid *position-x*)
     (snap-to-grid *position-y*))
+  
+  ; draw vle
+  (gl:load-identity)
+  (gl:color 0 0 0 0.777)    ; transparent
+  (quad-shape 0 0 0 10 1)   ; black window
+  (gl:scale (incf *real-zoom* (lerp *zoom* *real-zoom* 0.3))
+	    *real-zoom* 0)
 
   (let ((slower 0.5))
     (gl:translate (- (incf *real-camera-x*
@@ -385,7 +387,9 @@
     (simple-cross *position-x* *position-y* 0.1))
 
   ; *nodes*
+  (gl:line-width (floor (max (* *zoom* 10) 1))) ;?
   (mapc #'draw-wires *nodes*)
+  (gl:line-width 1)
   (mapc #'draw-node *nodes-at-screen*)
   (when *selected-nodes* 
     (draw-selection (car *selected-nodes*) t)
@@ -443,7 +447,7 @@
 				     *mouse-x* *mouse-y*))
 		     *nodes-at-screen*)))
       (if selected
-	  (setf *selected-nodes* selected)
+	  (setf *selected-nodes* (sort selected #'> :key #'node-y))
 	  (progn
 	    (setf *selected-nodes* ())
 	    (setf *position-x* *mouse-x*
@@ -478,7 +482,7 @@
 	(gl:enable :blend)
 	(gl:blend-func :src-alpha :one-minus-src-alpha)
 	(resize-viewport *screen-width* *screen-height*)
-	(gl:clear-color 0.1 0.1 0.1 1)
+	(gl:clear-color 0.5 0.5 0.5 1)
 
 	(repose)
 
