@@ -148,52 +148,45 @@
 (defun draw-node (node)
   (with-slots (name x y width color
 		    message error parents) node
-    (gl:push-matrix)
-    (gl:translate x y 0)
-    #|(if (null parents)
-    (gl:color 0.5 0.0 0.5)
-    (gl:color 0.2 0.2 0.2))|#
     (apply #'gl:color color)
-    (quad-shape 0 0 0 width *node-height*)
+    (quad-shape x y 0 width *node-height*)
     (gl:color 1 1 1)
     (when (> *zoom* 0.3)
-      (text name 0 0 0.04 0)
+      (text name x y 0.04 0)
       (when message
 	(if error
 	    (gl:color 1 1 0 0.5)	
 	    (gl:color 0 1 1))
-	(text message 0 0.1 0.04 0)))
-    (gl:pop-matrix)))
+	(text message x (+ y 0.1) 0.04 0)))))
 
 (defun draw-selection (node &optional first)
   (with-slots (x y width) node
-    (gl:push-matrix)
-    (gl:translate x y 0)
     (if first
 	(gl:color 1 1 0)
 	(gl:color 0 1 1))
-    (quad-lines 0 0 0
+    (quad-lines x y 0
 		(+ width         0.02)
-		(+ *node-height* 0.02))
-    (gl:pop-matrix)))
+		(+ *node-height* 0.02))))
 
 (defun draw-args-list (node)
-  (with-slots (name x y) node
-    (gl:push-matrix)
-    (gl:translate x y 0)
+  (with-slots (name x y childs) node
     (gl:color 1 1 1 0.5)
-    (text (e-eval
-	   `(princ-to-string
-	     (or
-	      #+sbcl(ignore-errors
-		      (sb-impl::%fun-lambda-list
-		       (macro-function (read-from-string ,name))))
-	      #+sbcl(ignore-errors
-		      (sb-impl::%fun-lambda-list
-		       (symbol-function (read-from-string ,name))))
-	      " ")))
-	  0 -0.15 0.04 0)
-    (gl:pop-matrix)))
+    (let ((args (e-eval
+		  `(or
+		    #+sbcl(ignore-errors
+			    (sb-impl::%fun-lambda-list
+			     (macro-function (read-from-string ,name))))
+		    #+sbcl(ignore-errors
+			    (sb-impl::%fun-lambda-list
+			     (symbol-function (read-from-string ,name))))
+		    " "))))
+      (text (princ-to-string args) x (- y 0.15) 0.04 0)
+      (let ((count 0))
+	(dolist (child childs) 
+	  (text ;(princ-to-string (nth count args))
+	   (princ-to-string count)
+		(node-x child) (+ (node-y child) 0.10) 0.03 0)
+	  (incf count))))))
   
 
 ;;
@@ -207,6 +200,11 @@
       (and (< (- x w) *mouse-x* (+ x w))
 	   (< (- y h) *mouse-y* (+ y h))))))
 
+(defun sort-childs (node)
+  (with-slots (childs) node
+    (setf childs
+	  (sort childs #'< :key #'node-x))))
+
 (defun make-connection (parent child)
   (when (not (eq parent child))
     (pushnew child
@@ -217,7 +215,8 @@
       (setf (node-message child) nil))
     (dolist (head (find-heads child))
       (when (node-message head)
-	(setf (node-message head) "?")))))
+	(setf (node-message head) "?")))
+    (sort-childs parent)))
 
 (defun connect-selected ()
   (let ((parent (car *selected-nodes*))
@@ -273,16 +272,14 @@
   (with-slots (name parents childs) node
     (if (string= name " ")               ; (child1 child2 ...)
 	`(,@(mapcar #'compose-code
-		    (setf childs
-			  (sort childs #'< :key #'node-x))))
+		    (sort-childs node)))
 	(let ((symbol (e-eval
 		       `(read-from-string ,name))))
 	  (cond
 	    (childs                      ; (symbol child1 child2 ...)
 	     `(,symbol
 	       ,@(mapcar #'compose-code
-			 (setf childs
-			       (sort childs #'< :key #'node-x)))))
+			 (sort-childs node))))
 	    ((and (null parents)         ; (function-symbol)
 		  (function-symbol-p symbol))
 	     (list symbol))
@@ -383,6 +380,7 @@
 
   ; cross
   (let ((flicker (+ (abs (* (sin *time*) 0.6)) 0.2)))
+    (gl:line-width 1)
     (gl:color 0 flicker flicker)
     (simple-cross *position-x* *position-y* 0.1))
 
@@ -438,6 +436,8 @@
 
 (defun release-mouse-left ()
   (setf *mouse-left* nil)
+  (dolist (selected *selected-nodes*)
+    (mapc #'sort-childs (node-parents selected)))
   (when *selector*
     (setf *selector* nil)
     (let ((selected (remove-if-not
