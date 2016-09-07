@@ -38,7 +38,7 @@
 (defparameter *real-camera-x* 0)
 (defparameter *real-camera-y* 0)
 (defparameter *zoom* 1.0)
-(defparameter *real-zoom* 1.0)
+(defparameter *real-zoom* 0.0)
 ;; *nodes* visual
 (defparameter *node-height* 0.06)
 (defparameter *node-width-char* 0.021) ;?
@@ -126,6 +126,10 @@
 (defun repose ()
   (setf *nodes-at-screen*
 	(remove-if-not #'node-at-screen *nodes*)))
+	
+(defmacro snap-to-grid (what)
+  `(decf ,what
+	 (- (mod (+ ,what 0.1) 0.2) 0.1)))
 
 ;;
 ;; node draw functions
@@ -161,12 +165,15 @@
 
 (defun draw-selection (node &optional first)
   (with-slots (x y width) node
-    (if first
-	(gl:color 1 1 0)
-	(gl:color 0 1 1))
-    (quad-lines x y 0
-		(+ width         0.02)
-		(+ *node-height* 0.02))))
+    (let ((alpha (if *mouse-left* 0.5 1)))
+      (if first
+	  (gl:color 1 1 0 alpha)
+	  (gl:color 0 1 1 alpha)))
+    (let ((x x) (y y))
+      (quad-lines (snap-to-grid x)
+		  (snap-to-grid y) 0
+		  (+ width         0.02)
+		  (+ *node-height* 0.02)))))
 
 (defun draw-args-list (node)
   (with-slots (name x y childs) node
@@ -201,9 +208,17 @@
 	   (< (- y h) *mouse-y* (+ y h))))))
 
 (defun sort-childs (node)
+  "Sort childs for args mapping (func 0 1 2 3).
+Horizontal (from left) is main axis, but if args-nodes 
+horizontaly equal, sort it by vertical (from upper)"
   (with-slots (childs) node
     (setf childs
-	  (sort childs #'< :key #'node-x))))
+	  (sort childs (lambda (a b)
+			 (if (< (- (node-x a) 0.01) 
+			 	(node-x b) 
+			 	(+ (node-x a) 0.01))
+			     (> (node-y a) (node-y b))
+			     (< (node-x a) (node-x b))))))))
 
 (defun make-connection (parent child)
   (when (not (eq parent child))
@@ -325,10 +340,6 @@
 ;; main-screen routine
 ;;
 
-(defmacro snap-to-grid (what)
-  `(decf ,what
-	 (- (mod (+ ,what 0.1) 0.2) 0.1)))
-
 (defun set-mouse-position ()
   (setf *mouse-x* *position-x*
 	*mouse-y* *position-y*))
@@ -427,9 +438,7 @@
 	  (if (find select *selected-nodes*)
 	      (setf *selected-nodes*
 		    (cons select (remove select *selected-nodes*)))
-	      (setf *selected-nodes* (list select)))
-	  (snap-to-grid *mouse-x*)
-	  (snap-to-grid *mouse-y*))
+	      (setf *selected-nodes* (list select))))
 	(setf *selector* t)))
   (setf *selector-x* *mouse-x*
 	*selector-y* *mouse-y*))
@@ -437,7 +446,10 @@
 (defun release-mouse-left ()
   (setf *mouse-left* nil)
   (dolist (selected *selected-nodes*)
-    (mapc #'sort-childs (node-parents selected)))
+    (with-slots (x y parents) selected
+      (snap-to-grid x)
+      (snap-to-grid y)
+      (mapc #'sort-childs parents)))
   (when *selector*
     (setf *selector* nil)
     (let ((selected (remove-if-not
@@ -570,9 +582,9 @@
 				 (+ (/ (- y half-height)
 				       half-height *zoom* -1)
 				    *camera-y*)))
-			  (when (and *mouse-left* (not *selector*))
-			    (snap-to-grid *mouse-x*)
-			    (snap-to-grid *mouse-y*))
+			  ;(when (and *mouse-left* (not *selector*))
+			  ;  (snap-to-grid *mouse-x*)
+			  ;  (snap-to-grid *mouse-y*))
 			  (when *mouse-right*
 			    (incf *camera-x*
 				  (/ xrel half-height *zoom* -1))
