@@ -2,7 +2,9 @@
 ;; Visual List Editor
 ;;
 
-(ql:quickload '(:cl-opengl :sdl2 :sdl2-ttf :sdl2-image))
+(ql:quickload '(:swank :cl-opengl :sdl2 :sdl2-ttf :sdl2-image))
+(load (merge-pathnames (pathname "contrib/swank-fuzzy.lisp")
+		       swank-loader:*source-directory*))
 
 (defpackage :vle
   (:use :cl :sdl2))
@@ -10,8 +12,19 @@
 (in-package :vle)
 
 ;;
-;; 
+;; communication
 ;;
+
+(defun completion (string)
+  (map 'list
+       (lambda (n) (write-to-string (swank::fuzzy-matching.symbol n)))
+       (let ((comps (sort
+		     (swank::fuzzy-find-matching-symbols
+		      string *package*)
+		     #'> :key #'swank::fuzzy-matching.score)))
+	 (subseq 
+	  comps
+	  0 (min 9 (length comps))))))
 
 (defun e-eval (form)
   (eval form))
@@ -30,6 +43,8 @@
 (defparameter *screen-width* 800)
 (defparameter *screen-height* 600)
 (defparameter *show-editor* t)
+(defparameter *completions* nil)
+(defparameter *completions-select* -1)
 ;; travel
 (defparameter *position-x* 0)
 (defparameter *position-y* 0)
@@ -95,7 +110,7 @@
   (with-slots (childs) node
     (node-update node)
     (when childs
-	(mapc #'update-tree childs))))
+      (mapc #'update-tree childs))))
 
 (defun create-node (&key name x y)
   (let ((node (make-node :name name :x x :y y)))
@@ -126,7 +141,7 @@
 (defun repose ()
   (setf *nodes-at-screen*
 	(remove-if-not #'node-at-screen *nodes*)))
-	
+
 (defmacro snap-to-grid (what)
   `(decf ,what
 	 (- (mod (+ ,what 0.1) 0.2) 0.1)))
@@ -179,22 +194,22 @@
   (with-slots (name x y childs) node
     (gl:color 1 1 1 0.5)
     (let ((args (e-eval
-		  `(or
-		    #+sbcl(ignore-errors
-			    (sb-impl::%fun-lambda-list
-			     (macro-function (read-from-string ,name))))
-		    #+sbcl(ignore-errors
-			    (sb-impl::%fun-lambda-list
-			     (symbol-function (read-from-string ,name))))
-		    " "))))
+		 `(or
+		   #+sbcl(ignore-errors
+			   (sb-impl::%fun-lambda-list
+			    (macro-function (read-from-string ,name))))
+		   #+sbcl(ignore-errors
+			   (sb-impl::%fun-lambda-list
+			    (symbol-function (read-from-string ,name))))
+		   " "))))
       (text (princ-to-string args) x (- y 0.15) 0.04 0)
       (let ((count 0))
 	(dolist (child childs) 
 	  (text ;(princ-to-string (nth count args))
 	   (princ-to-string count)
-		(node-x child) (+ (node-y child) 0.10) 0.03 0)
+	   (node-x child) (+ (node-y child) 0.10) 0.03 0)
 	  (incf count))))))
-  
+
 
 ;;
 ;; nodes utils
@@ -256,7 +271,7 @@ horizontaly equal, sort it by vertical (from upper)"
 	  (setf *selected-nodes* (list (car *nodes*)))
 	  (setf *position-y* (- (node-y node) 0.2))
 	  (setf *position-x* (node-x node))))
-      (let ((new-node (create-node :name *new-node-name*
+      (let ((new-node (create-node :name (string-upcase *new-node-name*)
 				   :x *position-x*
 				   :y *position-y*)))
 	(push new-node *nodes*)
@@ -318,10 +333,10 @@ horizontaly equal, sort it by vertical (from upper)"
 	  (progn
 	    (setf error nil)
 	    (setf message (write-to-string res)))))))
-				  
+
 (defun eval-node-threaded (node)
-    (sb-thread:make-thread #'eval-node
-                           :arguments (list node)))
+  (sb-thread:make-thread #'eval-node
+			 :arguments (list node)))
 
 (defun eval-tree (node)
   "Take some node from tree, find heads and evaluate"
@@ -329,12 +344,12 @@ horizontaly equal, sort it by vertical (from upper)"
 		   (remove-duplicates
 		    (flatten (mapcar #'find-heads node)))
 		   (find-heads node))))
-	(mapc #'eval-node-threaded heads)
-        (mapc #'update-tree heads)))
+    (mapc #'eval-node-threaded heads)
+    (mapc #'update-tree heads)))
 
-;(eval (list (read-from-string "+") 
-; 	     (read-from-string "2")
-;	     (read-from-string "5")))
+					;(eval (list (read-from-string "+") 
+					; 	     (read-from-string "2")
+					;	     (read-from-string "5")))
 
 ;;
 ;; main-screen routine
@@ -348,17 +363,17 @@ horizontaly equal, sort it by vertical (from upper)"
 
 (defun main-screen (delta)
   "Update and render"
-  ; update
+					; update
   (incf *time* delta)
 
-  ; draw back render
+					; draw back render
   (gl:clear :color-buffer-bit)
   (ignore-errors (draw))
 
   (when (not *show-editor*)
     (return-from main-screen))
   
-  ; update vle
+					; update vle
   (when *key-move*
     (set-mouse-position))
   
@@ -373,7 +388,7 @@ horizontaly equal, sort it by vertical (from upper)"
     (snap-to-grid *position-x*)
     (snap-to-grid *position-y*))
   
-  ; draw vle
+					; draw vle
   (gl:load-identity)
   (gl:color 0 0 0 0.777)    ; transparent
   (quad-shape 0 0 0 10 1)   ; black window
@@ -389,13 +404,13 @@ horizontaly equal, sort it by vertical (from upper)"
 				 *real-camera-y* slower)))
 		  0))
 
-  ; cross
+					; cross
   (let ((flicker (+ (abs (* (sin *time*) 0.6)) 0.2)))
     (gl:line-width 1)
     (gl:color 0 flicker flicker)
     (simple-cross *position-x* *position-y* 0.1))
 
-  ; *nodes*
+					; *nodes*
   (gl:line-width (floor (max (* *zoom* 10) 1))) ;?
   (mapc #'draw-wires *nodes*)
   (gl:line-width 1)
@@ -404,12 +419,12 @@ horizontaly equal, sort it by vertical (from upper)"
     (draw-selection (car *selected-nodes*) t)
     (mapc #'draw-selection (cdr *selected-nodes*)))
 
-  ; arguments tip
+					; arguments tip
   (let ((node (find-if #'mouse-at-node-p *nodes-at-screen*)))
     (when node
       (draw-args-list node)))
 
-  ; selector
+					; selector
   (when *selector*
     (let* ((x (min *selector-x* *mouse-x*))
 	   (y (min *selector-y* *mouse-y*))
@@ -419,14 +434,24 @@ horizontaly equal, sort it by vertical (from upper)"
       (aligned-quad-shape x y 0 w h)
       (gl:color 0.5 0.7 1)
       (aligned-quad-lines x y 0 w h)))
+
+					; new node name
+  (gl:color 1 1 1)
+  (if (not (string= *new-node-name* ""))
+      (text *new-node-name*
+	    *position-x* *position-y* 0.035 0))
+					; completion list
+  (let ((count -1)
+	(y (- *position-y* 0.05)))
+    (dolist (comp *completions*)
+      (if (= *completions-select* (incf count))
+	  (gl:color 0 1 1 1.0)
+	  (gl:color 1 1 1 0.1))
+      (text comp *position-x* (decf y 0.050) 0.025 0)))
   
-  ; gui
+					; gui
   (gl:load-identity)
   (gl:color 1 1 1)
-  (text (if (string= *new-node-name* "")
-	    "enter symbol"
-	    *new-node-name*)
-	0 -0.8 0.03 0)
   (text "|" 0 -0.9 0.03 (* *time* 12))
   (text "|" 0 -0.9 0.03 (* *time* 42)))
 
@@ -471,8 +496,8 @@ horizontaly equal, sort it by vertical (from upper)"
   (setf *mouse-right* t)
   (let ((select (find-if #'mouse-at-node-p *nodes-at-screen*)))
     (when select
-        (setf *selected-nodes*
-	      (cons select (remove select *selected-nodes*))))))
+      (setf *selected-nodes*
+	    (cons select (remove select *selected-nodes*))))))
 
 ;;
 ;; init and input setup
@@ -485,9 +510,9 @@ horizontaly equal, sort it by vertical (from upper)"
     (sdl2:gl-set-attr :multisamplebuffers 1) 
     (sdl2:gl-set-attr :multisamplesamples 2) 
     (with-window (vle-window :title "VLE"
-			 :w *screen-width*
-			 :h *screen-height*
-			 :flags '(:shown :resizable :opengl))
+			     :w *screen-width*
+			     :h *screen-height*
+			     :flags '(:shown :resizable :opengl))
       (with-gl-context (gl-context vle-window)
 	(gl-make-current vle-window gl-context)
 	(gl:enable :texture-2d)
@@ -505,19 +530,33 @@ horizontaly equal, sort it by vertical (from upper)"
 			    (setf *new-node-name*
 				  (concatenate 'string
 					       *new-node-name*
-					       (list char))))))
+					       (list char)))))
+			(if (> (length *new-node-name*) 1)
+			    (setf *completions*
+				  (completion *new-node-name*))))
 	  (:keydown     (:keysym keysym)
 			(case (scancode-symbol
 			       (scancode-value keysym))
 			  (:scancode-tab
 			   (eval-tree *selected-nodes*))
 			  (:scancode-return
-			   (insert-new-node))
-			  (:scancode-backspace
-			   (when (not (string= *new-node-name* ""))
+			   (when (> *completions-select* -1)
 			     (setf *new-node-name*
-				   (subseq *new-node-name* 0
-					   (- (length *new-node-name*) 1)))))
+				   (nth *completions-select*
+					*completions*)))
+			   (insert-new-node)
+			   (setf *completions* ()
+				 *completions-select* -1))
+			  (:scancode-backspace
+			   (when (> (length *new-node-name*) 0)
+			     (setf *new-node-name*
+				   (subseq
+				    *new-node-name* 0
+				    (- (length *new-node-name*) 1)))
+			     (if (> (length *new-node-name*) 1)
+				 (setf *completions*
+				       (completion *new-node-name*))
+				 (setf *completions* ()))))
 			  (:scancode-delete
 			   (mapc #'destroy-connections
 				 *selected-nodes*)
@@ -541,18 +580,24 @@ horizontaly equal, sort it by vertical (from upper)"
 			  (:scancode-kp-5
 			   (setf *camera-x* *position-x*
 				 *camera-y* *position-y*))
-			  (:scancode-kp-4
+			  ((:scancode-kp-4 :scancode-left)
 			   (setf *key-move* t)
 			   (incf *position-x* -0.2))
-			  (:scancode-kp-6
+			  ((:scancode-kp-6 :scancode-right)
 			   (setf *key-move* t)
 			   (incf *position-x* 0.2))
-			  (:scancode-kp-8
-			   (setf *key-move* t)
-			   (incf *position-y* 0.2))
-			  (:scancode-kp-2
-			   (setf *key-move* t)
-			   (incf *position-y* -0.2))
+			  ((:scancode-kp-8 :scancode-up) 
+			   (if (not (string= *new-node-name* ""))
+			       (decf *completions-select*)
+			       (progn
+				 (setf *key-move* t)
+				 (incf *position-y* 0.2))))
+			  ((:scancode-kp-2 :scancode-down)
+			   (if (not (string= *new-node-name* ""))
+			       (incf *completions-select*)
+			       (progn
+				 (setf *key-move* t)
+				 (incf *position-y* -0.2))))
 			  
 			  (:scancode-f11
 			   (full-screen vle-window))))
@@ -582,9 +627,9 @@ horizontaly equal, sort it by vertical (from upper)"
 				 (+ (/ (- y half-height)
 				       half-height *zoom* -1)
 				    *camera-y*)))
-			  ;(when (and *mouse-left* (not *selector*))
-			  ;  (snap-to-grid *mouse-x*)
-			  ;  (snap-to-grid *mouse-y*))
+					;(when (and *mouse-left* (not *selector*))
+					;  (snap-to-grid *mouse-x*)
+					;  (snap-to-grid *mouse-y*))
 			  (when *mouse-right*
 			    (incf *camera-x*
 				  (/ xrel half-height *zoom* -1))
@@ -608,7 +653,7 @@ horizontaly equal, sort it by vertical (from upper)"
 						   2)
 					      0.1))
 			    (repose))
-			     
+	  
 	  (:idle        ()
 			(idler vle-window))
 	  (:windowevent (:event event :data1 width :data2 height)
