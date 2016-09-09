@@ -27,6 +27,7 @@
 	  0 (min 9 (length comps))))))
 
 (defun e-eval (form)
+  (print form)
   (eval form))
 
 (defun function-symbol-p (symbol)
@@ -96,8 +97,10 @@
 
 (defun node-update (node)
   (setf (node-width node)
-	(+ (* (length (node-name node)) *node-width-char*)
-	   *node-width-bumps*)
+	(if (stringp (node-name node))
+	    (+ (* (length (node-name node)) *node-width-char*)
+	       *node-width-bumps*)
+	    *node-height*)
 	(node-color node)
 	(if (ignore-errors (function-symbol-p
 			    (read-from-string (node-name node))))
@@ -113,7 +116,10 @@
       (mapc #'update-tree childs))))
 
 (defun create-node (&key name x y)
-  (let ((node (make-node :name name :x x :y y)))
+  (let ((node (make-node :name (cond ((string= name " ") :list)
+				     ((string= name ".") :dot)
+				     (t name))
+			 :x x :y y)))
     (node-update node)))
 
 ;;
@@ -167,11 +173,14 @@
 (defun draw-node (node)
   (with-slots (name x y width color
 		    message error parents) node
-    (apply #'gl:color color)
-    (quad-shape x y 0 width *node-height*)
+    (when (stringp name)
+      (apply #'gl:color color)
+      (quad-shape x y 0 width *node-height*))
     (gl:color 1 1 1)
     (when (> *zoom* 0.3)
-      (text name x y 0.04 0)
+      (text (if (stringp name) name
+		(case name (:list "(●)") (:dot "●") (t "?")))
+	    x y 0.04 0)
       (when message
 	(if error
 	    (gl:color 1 1 0 0.5)	
@@ -300,21 +309,24 @@ horizontaly equal, sort it by vertical (from upper)"
 (defun compose-code (node)
   "Make lisp form"
   (with-slots (name parents childs) node
-    (if (string= name " ")               ; (child1 child2 ...)
-	`(,@(mapcar #'compose-code
-		    (sort-childs node)))
-	(let ((symbol (e-eval
-		       `(read-from-string ,name))))
+    (if (stringp name)
+	(let ((symbol (e-eval `(read-from-string ,name))))
 	  (cond
 	    (childs                      ; (symbol child1 child2 ...)
-	     `(,symbol
-	       ,@(mapcar #'compose-code
-			 (sort-childs node))))
+	     `(,symbol ,@(mapcar #'compose-code
+				 (sort-childs node))))
 	    ((and (null parents)         ; (function-symbol)
 		  (function-symbol-p symbol))
 	     (list symbol))
 	    (t                           ; symbol
-	     symbol))))))
+	     symbol)))
+	(case name
+	  (:list                         ; (child1 child2 ...)
+	   `(,@(mapcar #'compose-code
+		       (sort-childs node))))
+	  (:dot                          ; child1
+	   (compose-code (car childs)))))))
+
 
 (defun eval-node (node)
   "Node must be head of tree"
