@@ -467,18 +467,26 @@ horizontaly equal, sort it by vertical (from upper)"
   (text "|" 0 -0.9 0.03 (* *time* 12))
   (text "|" 0 -0.9 0.03 (* *time* 42)))
 
-(defun press-mouse-left ()
-  (setf *mouse-left* t)
-  (let ((select (find-if #'mouse-at-node-p *nodes-at-screen*)))
-    (if select
-	(progn
-	  (if (find select *selected-nodes*)
-	      (setf *selected-nodes*
-		    (cons select (remove select *selected-nodes*)))
-	      (setf *selected-nodes* (list select))))
-	(setf *selector* t)))
-  (setf *selector-x* *mouse-x*
-	*selector-y* *mouse-y*))
+(let ((last-click-time 0.0))
+  (defun press-mouse-left ()
+    (if (< (- (get-internal-real-time) last-click-time) 300)
+	(progn                          ; double-click
+	  (let ((select (find-if #'mouse-at-node-p *nodes-at-screen*)))
+	    (when select (eval-tree select))))
+	(progn                          ; single-click
+	  (setf *mouse-left* t)
+	  (let ((select (find-if #'mouse-at-node-p *nodes-at-screen*)))
+	    (if select
+		(progn
+		  (if (find select *selected-nodes*)
+		      (setf *selected-nodes*
+			    (cons select (remove select
+						 *selected-nodes*)))
+		      (setf *selected-nodes* (list select))))
+		(setf *selector* t)))
+	  (setf *selector-x* *mouse-x*
+		*selector-y* *mouse-y*)))
+    (setf last-click-time (get-internal-real-time))))
 
 (defun release-mouse-left ()
   (setf *mouse-left* nil)
