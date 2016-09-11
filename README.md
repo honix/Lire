@@ -33,7 +33,7 @@ Before run VLE check that you dependencies ready
 
 **Lets go**
 
-```cd your/path/to/vle``` *and* ```sbcl --load main.lisp```
+```cd your/path/to/vle``` *and* ```sbcl --load main-with-utf8.lisp```
 
 ## Controls
 Action | Bind
