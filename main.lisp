@@ -224,12 +224,18 @@
 ;; nodes utils
 ;;
 
-(defun mouse-at-node-p (node)
+(defun point-at-node-p (node point-x point-y)
   (with-slots (x y width) node
     (let ((w width)
 	  (h *node-height*))
-      (and (< (- x w) *mouse-x* (+ x w))
-	   (< (- y h) *mouse-y* (+ y h))))))
+      (and (< (- x w) point-x (+ x w))
+	   (< (- y h) point-y (+ y h))))))
+
+(defun position-at-node-p (node)
+  (point-at-node-p node *position-x* *position-y*))
+
+(defun mouse-at-node-p (node)
+  (point-at-node-p node *mouse-x* *mouse-y*))
 
 (defun sort-childs (node)
   "Sort childs for args mapping (func 0 1 2 3).
@@ -273,27 +279,47 @@ horizontaly equal, sort it by vertical (from upper)"
   (setf (node-childs  node) ())
   (setf (node-parents node) ()))
 
+(defun delete-nodes (nodes-to-delete)
+  (mapc #'destroy-connections
+	*selected-nodes*)
+  (setf *nodes*
+	(set-difference *nodes*
+		        nodes-to-delete)
+	*selected-nodes* ())
+  (repose))
+
 (defun insert-new-node ()
   (if (string= *new-node-name* "")
+      ; hit 'enter' with out symbol -> jump to last created node
       (let ((node (car *nodes*)))
 	(when node
 	  (setf *selected-nodes* (list (car *nodes*)))
 	  (setf *position-y* (- (node-y node) 0.2))
 	  (setf *position-x* (node-x node))))
-      (let ((new-node (create-node :name (string-upcase *new-node-name*)
-				   :x *position-x*
-				   :y *position-y*)))
-	(push new-node *nodes*)
-	(setf *new-node-name* "")
-	(if *selected-nodes*
+      ; hit 'enter' with symbol
+      (let ((under (find-if #'position-at-node-p *nodes-at-screen*)))
+	(if under
+	    ; new node overlaps olds -> replace it name!
 	    (progn
-	      (make-connection (car *selected-nodes*) new-node)
-	      (incf *position-x* 0.2))
-	    (progn
-	      (pushnew new-node *selected-nodes*)
-	      (incf *position-y* -0.2)))
-	(repose))))
+	      (setf (node-name under) (string-upcase *new-node-name*))
+	      (node-update under))
+	    ; new node
+	    (let ((new-node (create-node :name (string-upcase
+						*new-node-name*)
+					 :x *position-x*
+					 :y *position-y*)))
+	      (push new-node *nodes*)
 
+	      (if *selected-nodes*
+		  (progn
+		    (make-connection (car *selected-nodes*) new-node)
+		    (incf *position-x* 0.2))
+		  (progn
+		    (pushnew new-node *selected-nodes*)
+		    (incf *position-y* -0.2)))))
+	(setf *new-node-name* "")
+	(repose))))
+	
 ;;
 ;; evaluation
 ;;
@@ -505,12 +531,11 @@ horizontaly equal, sort it by vertical (from upper)"
 		     *nodes-at-screen*)))
       (if selected
 	  (setf *selected-nodes* (sort selected #'> :key #'node-y))
-	  (progn
-	    (setf *selected-nodes* ())
-	    (setf *position-x* *mouse-x*
-		  *position-y* *mouse-y*)
-	    (snap-to-grid *position-x*)
-	    (snap-to-grid *position-y*))))))
+	  (setf *selected-nodes* ()))))
+  (setf *position-x* *mouse-x*
+	*position-y* *mouse-y*)
+  (snap-to-grid *position-x*)
+  (snap-to-grid *position-y*))
 
 (defun press-mouse-right ()
   (setf *mouse-right* t)
@@ -578,13 +603,7 @@ horizontaly equal, sort it by vertical (from upper)"
 				       (completion *new-node-name*))
 				 (setf *completions* ()))))
 			  (:scancode-delete
-			   (mapc #'destroy-connections
-				 *selected-nodes*)
-			   (setf *nodes*
-				 (set-difference *nodes*
-						 *selected-nodes*)
-				 *selected-nodes* ())
-			   (repose))
+			   (delete-nodes *selected-nodes*))
 			  (:scancode-kp-7
 			   (connect-selected))
 			  (:scancode-kp-1
