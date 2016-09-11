@@ -18,6 +18,23 @@ Try to enter
 This will make list
 ```(+ 10 (* 25 2))```
 
+## Run from source
+Before run VLE check that you dependencies ready
+
+**Linux**
+
+- Ubuntu (and Debian family): ```sudo apt-get install libffi6 libsdl2 libsdl2-image libsdl2-ttf```
+
+- Fedora: ```sudo dnf install libffi SDL2 SDL2_image SDL2_ttf```
+
+**Windows**
+
+- Put dll's analogies to your SBCL folder, right with sbcl.exe (for x86 there is collected already, check ```windows-x86-dlls```
+
+**Lets go**
+
+```cd your/path/to/vle``` *and* ```sbcl --load main.lisp```
+
 ## Controls
 Action | Bind
 -------|------
