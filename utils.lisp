@@ -173,12 +173,18 @@
   (simple-line x (- y size)
 	       x (+ y size)))
 
-
 (defun text (string x y size rotation)
   (let ((text-texture (make-text string)))
     (with-slots (texture width heigth) text-texture
       (quad-textured texture x y
 		     rotation (* width size) (* heigth size)))))
+
+(defun text-align (string x y size rotation)
+  (let ((text-texture (make-text string)))
+    (with-slots (texture width heigth) text-texture
+      (quad-textured texture (+ x (* width size)) y
+		     rotation (* width size) (* heigth size)))))
+
 
 ;;;
 ;;; window-utils

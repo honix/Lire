@@ -22,9 +22,7 @@
 		     (swank::fuzzy-find-matching-symbols
 		      string *package*)
 		     #'> :key #'swank::fuzzy-matching.score)))
-	 (subseq 
-	  comps
-	  0 (min 9 (length comps))))))
+	 (subseq comps 0 (min 9 (length comps))))))
 
 (defun e-eval (form)
   (print form)
@@ -199,26 +197,39 @@
 		  (+ width         0.02)
 		  (+ *node-height* 0.02)))))
 
+(let ((last-node nil)
+      (last-value " "))
+  (defun args-list (node)
+    "Returns string with function or macro arguments"
+    (if (equal node last-node)
+	last-value
+	(setf last-node node
+	      last-value 
+	      (let* ((name (node-name node))
+		     (args (e-eval
+			    `(or
+			      #+sbcl(ignore-errors
+				      (sb-impl::%fun-lambda-list
+				       (macro-function
+					(read-from-string ,name))))
+			      #+sbcl(ignore-errors
+				      (sb-impl::%fun-lambda-list
+				       (symbol-function
+					(read-from-string ,name))))
+			      " "))))
+		(princ-to-string args))))))
+		      
 (defun draw-args-list (node)
-  (with-slots (name x y childs) node
+  (with-slots (x y childs) node
     (gl:color 1 1 1 0.5)
-    (let ((args (e-eval
-		 `(or
-		   #+sbcl(ignore-errors
-			   (sb-impl::%fun-lambda-list
-			    (macro-function (read-from-string ,name))))
-		   #+sbcl(ignore-errors
-			   (sb-impl::%fun-lambda-list
-			    (symbol-function (read-from-string ,name))))
-		   " "))))
-      (text (princ-to-string args) x (- y 0.15) 0.04 0)
-      (let ((count 0))
-	(dolist (child childs) 
-	  (text ;(princ-to-string (nth count args))
-	   (princ-to-string count)
-	   (node-x child) (+ (node-y child) 0.10) 0.03 0)
-	  (incf count))))))
-
+    (text (args-list node) x (- y 0.15) 0.04 0)
+    ; childs numbering
+    (let ((count 0))
+      (dolist (child childs) 
+	(text ;(princ-to-string (nth count args))
+	 (princ-to-string count)
+	 (node-x child) (+ (node-y child) 0.10) 0.03 0)
+	(incf count)))))
 
 ;;
 ;; nodes utils
@@ -304,8 +315,7 @@ horizontaly equal, sort it by vertical (from upper)"
 	      (setf (node-name under) (string-upcase *new-node-name*))
 	      (node-update under))
 	    ; new node
-	    (let ((new-node (create-node :name (string-upcase
-						*new-node-name*)
+	    (let ((new-node (create-node :name *new-node-name*
 					 :x *position-x*
 					 :y *position-y*)))
 	      (push new-node *nodes*)
@@ -385,9 +395,9 @@ horizontaly equal, sort it by vertical (from upper)"
     (mapc #'eval-node-threaded heads)
     (mapc #'update-tree heads)))
 
-					;(eval (list (read-from-string "+") 
-					; 	     (read-from-string "2")
-					;	     (read-from-string "5")))
+;(eval (list (read-from-string "+") 
+; 	     (read-from-string "2")
+;	     (read-from-string "5")))
 
 ;;
 ;; main-screen routine
@@ -474,10 +484,11 @@ horizontaly equal, sort it by vertical (from upper)"
       (aligned-quad-lines x y 0 w h)))
 
 					; new node name
-  (gl:color 1 1 1)
-  (if (not (string= *new-node-name* ""))
-      (text *new-node-name*
-	    *position-x* *position-y* 0.035 0))
+  (when (not (string= *new-node-name* ""))
+    (draw-node (create-node :name *new-node-name*
+			    :x *position-x*
+			    :y *position-y*)))
+  
 					; completion list
   (let ((count -1)
 	(y (- *position-y* 0.05)))
@@ -489,7 +500,9 @@ horizontaly equal, sort it by vertical (from upper)"
   
 					; gui
   (gl:load-identity)
-  (gl:color 1 1 1)
+  (gl:color 1 1 1 0.5)
+  (text "vle proto" -0.5 -0.9 0.03 0)
+  (text (princ-to-string *package*) 0.5 -0.9 0.03 0)
   (text "|" 0 -0.9 0.03 (* *time* 12))
   (text "|" 0 -0.9 0.03 (* *time* 42)))
 
@@ -587,8 +600,9 @@ horizontaly equal, sort it by vertical (from upper)"
 			  (:scancode-return
 			   (when (> *completions-select* -1)
 			     (setf *new-node-name*
-				   (nth *completions-select*
-					*completions*)))
+				   (string-downcase
+				    (nth *completions-select*
+					 *completions*))))
 			   (insert-new-node)
 			   (setf *completions* ()
 				 *completions-select* -1))
@@ -666,9 +680,6 @@ horizontaly equal, sort it by vertical (from upper)"
 				 (+ (/ (- y half-height)
 				       half-height *zoom* -1)
 				    *camera-y*)))
-					;(when (and *mouse-left* (not *selector*))
-					;  (snap-to-grid *mouse-x*)
-					;  (snap-to-grid *mouse-y*))
 			  (when *mouse-right*
 			    (incf *camera-x*
 				  (/ xrel half-height *zoom* -1))
