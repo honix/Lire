@@ -36,12 +36,17 @@
 ;; parameters
 ;;
 
-;; main
+;; timing
 (defparameter *time* 0.0)
 (defparameter *delta* 0.0)
+(defparameter *second-time* 0.0)
+(defparameter *temp-fps* 0)
+(defparameter *fps* 0)
+;; screen
 (defparameter *screen-width* 800)
 (defparameter *screen-height* 600)
 (defparameter *show-editor* t)
+;; completions
 (defparameter *completions* nil)
 (defparameter *completions-select* -1)
 ;; travel
@@ -411,12 +416,22 @@ horizontaly equal, sort it by vertical (from upper)"
 
 (defun main-screen (delta)
   "Update and render"
-					; update
+					; timing and fps count
   (incf *time* delta)
+  (if (< *second-time* 1.0)
+      (progn
+	(incf *second-time* delta)
+	(incf *temp-fps*))
+      (progn
+	(setf *second-time* 0.0
+	      *fps*         *temp-fps*
+	      *temp-fps*    0)))
 
 					; draw back render
   (gl:clear :color-buffer-bit)
+  (gl:disable :blend)
   (ignore-errors (draw))
+  (gl:enable :blend)
 
   (when (not *show-editor*)
     (return-from main-screen))
@@ -501,7 +516,7 @@ horizontaly equal, sort it by vertical (from upper)"
 					; gui
   (gl:load-identity)
   (gl:color 1 1 1 0.5)
-  (text "vle proto" -0.5 -0.9 0.03 0)
+  (text (format nil "fps: ~A" *fps*) -0.5 -0.9 0.03 0)
   (text (princ-to-string *package*) 0.5 -0.9 0.03 0)
   (text "|" 0 -0.9 0.03 (* *time* 12))
   (text "|" 0 -0.9 0.03 (* *time* 42)))
@@ -574,7 +589,6 @@ horizontaly equal, sort it by vertical (from upper)"
       (with-gl-context (gl-context vle-window)
 	(gl-make-current vle-window gl-context)
 	(gl:enable :texture-2d)
-	(gl:enable :blend)
 	(gl:blend-func :src-alpha :one-minus-src-alpha)
 	(resize-viewport *screen-width* *screen-height*)
 	(gl:clear-color 0.5 0.5 0.5 1)
