@@ -1,5 +1,5 @@
 # Visual List Editor (VLE)
-![vle](https://github.com/honix/Visual-List-Editor/blob/master/wiki/find-alice-2.png)
+![vle](https://github.com/honix/Visual-List-Editor/blob/master/wiki/kung-fu.png)
 
 ## Status
 VLE in early-early development phase.
