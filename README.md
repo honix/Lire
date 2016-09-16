@@ -45,9 +45,9 @@ Pan | Right-mouse-button drag
 Zoom | Scroll
 Create new node | (enter node name) Enter
 Switch to last node | Enter
-Evaluate tree | Tab
+Evaluate tree | Tab or Double-left click
 Delete node | Delete
-Connect nodes | Left-mouse-button drag from children to parent
+Connect nodes | Right-mouse-button drag from children to parent
 Connect selected (last is a parent)| Key-Pad-7
 Lost connections | Key-Pad-1
 Move cursor up & down | Key-Pad-8 & Key-Pad-2
