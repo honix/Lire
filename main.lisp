@@ -75,6 +75,7 @@
 ;; inputs
 (defparameter *mouse-x* 0)
 (defparameter *mouse-y* 0)
+(defparameter *shift* nil)
 (defparameter *key-move* nil)
 (defparameter *mouse-left* nil)
 (defparameter *mouse-right* nil)
@@ -228,10 +229,14 @@
 	    (if select
 		(progn
 		  (if (find select *selected-nodes*)
+		      ; make parent first
 		      (setf *selected-nodes*
 			    (cons select (remove select
 						 *selected-nodes*)))
-		      (setf *selected-nodes* (list select))))
+		      (if *shift*
+			  (setf *selected-nodes*
+			    (cons select *selected-nodes*))
+			  (setf *selected-nodes* (list select)))))
 		(setf *selector* t)))
 	  (setf *selector-x* *mouse-x*
 		*selector-y* *mouse-y*)))
@@ -252,7 +257,12 @@
 				     *mouse-x* *mouse-y*))
 		     *nodes-at-screen*)))
       (if selected
-	  (setf *selected-nodes* (sort selected #'> :key #'node-y))
+	  (setf *selected-nodes* (sort
+				  (if *shift*
+				      (append selected
+					      *selected-nodes*)
+				      selected)
+				  #'> :key #'node-y))
 	  (setf *selected-nodes* ()))))
   (setf *position-x* *mouse-x*
 	*position-y* *mouse-y*)
@@ -329,7 +339,7 @@
 			       (scancode-value keysym))
 			  (:scancode-tab
 			   (eval-tree *selected-nodes*))
-			  (:scancode-return
+			  ((:scancode-return :scancode-kp-enter)
 			   (when (> *completions-select* -1)
 			     (setf *new-node-name*
 				   (string-downcase
@@ -350,6 +360,8 @@
 				 (setf *completions* ()))))
 			  (:scancode-delete
 			   (delete-nodes *selected-nodes*))
+			  ((:scancode-lshift :scancode-rshift)
+			   (setf *shift* t))
 			  (:scancode-kp-7
 			   (connect-selected))
 			  (:scancode-kp-1
@@ -391,6 +403,8 @@
 			       (scancode-value keysym))
 			  (:scancode-escape
 			   (push-event :quit))
+			  ((:scancode-lshift :scancode-rshift)
+			   (setf *shift* nil))
 			  (:scancode-lalt
 			   (release-mouse-left))
 			  (:scancode-lctrl
