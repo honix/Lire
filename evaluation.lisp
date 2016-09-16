@@ -2,6 +2,8 @@
 ;; Visual List Editor - evaluation
 ;;
 
+(in-package :vle)
+
 (defun find-heads (node)
   "Find all tree-heads linked to node"
   (labels ((find-head-in (node)
@@ -28,8 +30,8 @@
 	  (:list                         ; (child1 child2 ...)
 	   `(,@(mapcar #'compose-code
 		       (sort-childs node))))
-	  (:dot                          ; child1
-	   (compose-code (car childs)))))))
+	  (:dot                          ; child1 child2 ...
+	   (compose-code (apply #'values childs)))))))
 
 
 (defun eval-node (node)

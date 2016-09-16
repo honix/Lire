@@ -65,6 +65,7 @@
 ;; *nodes*
 (defparameter *new-node-name* "")
 (defparameter *nodes* ())
+(defparameter *connecting-nodes* ())
 (defparameter *nodes-at-screen* ())
 (defparameter *selected-nodes* ())
 ;; selector
@@ -239,9 +240,8 @@
 (defun release-mouse-left ()
   (setf *mouse-left* nil)
   (dolist (selected *selected-nodes*)
+    (snap-node-to-grid selected)
     (with-slots (x y parents) selected
-      (snap-to-grid x)
-      (snap-to-grid y)
       (mapc #'sort-childs parents)))
   (when *selector*
     (setf *selector* nil)
@@ -263,8 +263,32 @@
   (setf *mouse-right* t)
   (let ((select (find-if #'mouse-at-node-p *nodes-at-screen*)))
     (when select
-      (setf *selected-nodes*
-	    (cons select (remove select *selected-nodes*))))))
+      (setf *selected-nodes* (if (not (find select *selected-nodes*))
+				 (list select)
+				 *selected-nodes*))
+      (setf *connecting-nodes* *selected-nodes*)
+      (let ((dot (create-node :name "." :x *mouse-x* :y *mouse-y*)))
+	(push dot *nodes*)
+	(push dot *selected-nodes*)
+	(repose))
+      (connect-selected))))
+
+(defun release-mouse-right ()
+  (setf *mouse-right* nil)
+  (let ((select (find-if #'mouse-at-node-p (rest *nodes-at-screen*))))
+    (when select
+      (when (not (find select *connecting-nodes*))
+	(setf *selected-nodes*
+	      (cons select *selected-nodes*))
+	(connect-selected))
+      ;(delete-nodes (list (car *nodes*)))) ???
+      (destroy-connections (car *nodes*))
+      (setf *nodes* (remove (car *nodes*) *nodes*))
+      (repose)))
+  (when *connecting-nodes*
+    (snap-node-to-grid (car *nodes*))
+    (setf *selected-nodes* ())
+    (setf *connecting-nodes* ())))
 
 ;;
 ;; init and input setup
@@ -389,11 +413,18 @@
 				       half-height *zoom* -1)
 				    *camera-y*)))
 			  (when *mouse-right*
-			    (incf *camera-x*
-				  (/ xrel half-height *zoom* -1))
-			    (incf *camera-y*
-				  (/ yrel half-height *zoom*))
-			    (repose))))
+			    (if *connecting-nodes*
+				(progn
+				  (incf (node-x (car *nodes*))
+					(/ xrel half-height *zoom*))
+				  (incf (node-y (car *nodes*))
+					(/ yrel half-height *zoom* -1)))
+				(progn
+				  (incf *camera-x*
+					(/ xrel half-height *zoom* -1))
+				  (incf *camera-y*
+					(/ yrel half-height *zoom*))
+				  (repose))))))
 	  (:mousebuttondown (:button button)
 			    (case button
 			      (1 (press-mouse-left))
@@ -405,7 +436,7 @@
 	  (:mousebuttonup   (:button button)
 			    (case button
 			      (1 (release-mouse-left))
-			      (3 (setf *mouse-right* nil))))
+			      (3 (release-mouse-right))))
 	  (:mousewheel      (:y y)
 			    (setf *zoom* (max (min (+ *zoom* (* y 0.1))
 						   2)

@@ -2,6 +2,8 @@
 ;; Visual List Editor - node
 ;;
 
+(in-package :vle)
+
 (defstruct node
   name
   x y
@@ -150,6 +152,10 @@
 ;; nodes utils
 ;;
 
+(defun snap-node-to-grid (node)
+  (snap-to-grid (node-x node))
+  (snap-to-grid (node-y node)))
+
 (defun point-at-node-p (node point-x point-y)
   (with-slots (x y width) node
     (let ((w width)
@@ -227,7 +233,10 @@ horizontaly equal, sort it by vertical (from upper)"
 	(if under
 	    ; new node overlaps olds -> replace it name!
 	    (progn
-	      (setf (node-name under) (string-upcase *new-node-name*))
+	      (setf (node-name under)
+		    (cond ((string= *new-node-name* " ") :list)
+			  ((string= *new-node-name* ".") :dot)
+			  (t *new-node-name*)))
 	      (node-update under))
 	    ; new node
 	    (let ((new-node (create-node :name *new-node-name*

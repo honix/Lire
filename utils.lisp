@@ -1,3 +1,7 @@
+;;
+;; Visual List Editor - utils
+;;
+
 (in-package :vle)
 
 (defun path (file-name)
