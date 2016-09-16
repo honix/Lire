@@ -40,13 +40,14 @@ Action | Bind
 -------|------
 Place cursor (blue cross) or select node | Left-mouse-button click
 Select area or drag node | Left-mouse-button drag
-Accumulative select | Right-mouse-button click
+Accumulative select | Shift
 Pan | Right-mouse-button drag
 Zoom | Scroll
 Create new node | (enter node name) Enter
 Switch to last node | Enter
 Evaluate tree | Tab
 Delete node | Delete
+Connect nodes | Left-mouse-button drag from children to parent
 Connect selected (last is a parent)| Key-Pad-7
 Lost connections | Key-Pad-1
 Move cursor up & down | Key-Pad-8 & Key-Pad-2
