@@ -259,8 +259,9 @@
       (if selected
 	  (setf *selected-nodes* (sort
 				  (if *shift*
-				      (append selected
-					      *selected-nodes*)
+				      (remove-duplicates 
+				       (append selected
+					       *selected-nodes*))
 				      selected)
 				  #'> :key #'node-y))
 	  (setf *selected-nodes* ()))))
