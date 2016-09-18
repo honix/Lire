@@ -24,9 +24,9 @@
 		     #'> :key #'swank::fuzzy-matching.score)))
 	 (subseq comps 0 (min 9 (length comps))))))
 
-(defun e-eval (form)
-  (print form)
-  (eval form))
+(defun e-eval (form &optional echo)
+  (when echo (print form))
+  (ignore-errors (eval form)))
 
 (defun function-symbol-p (symbol)
   (e-eval

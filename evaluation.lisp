@@ -16,31 +16,34 @@
   "Make lisp form"
   (with-slots (name parents childs) node
     (if (stringp name)
+	; symbols
 	(let ((symbol (e-eval `(read-from-string ,name))))
 	  (cond
 	    (childs                      ; (symbol child1 child2 ...)
-	     `(,symbol ,@(mapcar #'compose-code
-				 (sort-childs node))))
+	     `(,symbol ,@(mapcar #'compose-code (sort-childs node))))
 	    ((and (null parents)         ; (function-symbol)
 		  (function-symbol-p symbol))
-	     (list symbol))
+	     `(,symbol))
 	    (t                           ; symbol
 	     symbol)))
+	; specials
 	(case name
 	  (:list                         ; (child1 child2 ...)
-	   `(,@(mapcar #'compose-code
-		       (sort-childs node))))
+	   (mapcar #'compose-code
+		   (sort-childs node)))
 	  (:dot                          ; child1 child2 ...
-	   (compose-code (apply #'values childs)))))))
-
+	   (if (null (cdr childs))
+	       (compose-code (car childs)) ; short link
+	       `(values                    ; multiple link
+		 ,@(mapcar #'compose-code
+			   (sort-childs node)))))))))
 
 (defun eval-node (node)
   "Node must be head of tree"
   (with-slots (message error) node
     (setf message "...")
-    (let* ((eva (multiple-value-list (e-eval
-				      `(ignore-errors
-					 ,(compose-code node)))))
+    (let* ((eva (multiple-value-list
+		 (e-eval (compose-code node) :echo)))
 	   (res (first  eva))
 	   (err (second eva)))
       (if err
