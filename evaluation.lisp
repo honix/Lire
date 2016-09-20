@@ -42,18 +42,22 @@
   "Node must be head of tree"
   (with-slots (message error) node
     (setf message "...")
-    (let* ((eva (multiple-value-list
-		 (e-eval (compose-code node) :echo)))
+    (let* ((cod (compose-code node))
+	   (eva (multiple-value-list
+		 (e-eval cod :echo)))
 	   (res (first  eva))
 	   (err (second eva)))
-      (if err
+      (if (typep err 'error)
 	  (progn
 	    (setf error t)
-	    (setf message (substitute #\Space #\Linefeed
-				      (write-to-string err))))
+	    (setf message (write-to-string err :length 16)))
 	  (progn
 	    (setf error nil)
-	    (setf message (write-to-string res)))))))
+	    (setf message
+		  (write-to-string (if (eq (node-name node) :dot)
+				       cod
+				       res)
+				   :length 16)))))))
 
 (defun eval-node-threaded (node)
   (sb-thread:make-thread #'eval-node
