@@ -182,23 +182,26 @@ horizontaly equal, sort it by vertical (from upper)"
 			     (> (node-y a) (node-y b))
 			     (< (node-x a) (node-x b))))))))
 
-(defun make-connection (parent child)
-  (when (not (eq parent child))
-    (pushnew child
-	     (node-childs parent))
-    (pushnew parent
-	     (node-parents child))
-    (when (node-message child)
-      (setf (node-message child) nil))
-    (dolist (head (find-heads child))
-      (when (node-message head)
-	(setf (node-message head) "?")))
-    (sort-childs parent)))
+(defun flip-connection (parent child)
+  (if (find child (node-childs parent))
+      (setf (node-childs parent) (remove child (node-childs parent))
+	    (node-parents child) (remove parent (node-parents child)))
+      (when (not (eq parent child))
+	(pushnew child
+		 (node-childs parent))
+	(pushnew parent
+		 (node-parents child))
+	(when (node-message child)
+	  (setf (node-message child) nil))
+	(dolist (head (find-heads child))
+	  (when (node-message head)
+	    (setf (node-message head) "?")))
+	(sort-childs parent))))
 
 (defun connect-selected ()
   (let ((parent (car *selected-nodes*))
 	(others (cdr *selected-nodes*)))
-    (mapc (lambda (node) (make-connection parent node))
+    (mapc (lambda (node) (flip-connection parent node))
 	  others)))
 
 (defun destroy-connections (node)
@@ -246,7 +249,7 @@ horizontaly equal, sort it by vertical (from upper)"
 
 	      (if *selected-nodes*
 		  (progn
-		    (make-connection (car *selected-nodes*) new-node)
+		    (flip-connection (car *selected-nodes*) new-node)
 		    (incf *position-x* 0.2))
 		  (progn
 		    (pushnew new-node *selected-nodes*)
