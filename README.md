@@ -29,9 +29,11 @@ Before run VLE check that you dependencies ready
 
 **Windows**
 
-- Install [MinGW](https://sourceforge.net/projects/mingw/files/Installer) with mingw-base package, and copy ```ffi.h``` and ```ffitarget.h``` to ```...\MinGW\include```
+- Install [MinGW](https://sourceforge.net/projects/mingw/files/Installer) with ```mingw32-base``` package, and copy ```ffi.h``` and ```ffitarget.h``` to ```...\MinGW\include```
 
-- Put dll's analogies to your SBCL folder, right with sbcl.exe (for x86 there is collected already, check ```dlls/windows-x86-dlls.zip```)
+- Add ```...\MinGW\bin``` to PATH environment variable (make able sbcl to call ```gcc```)
+
+- Put dll's to your SBCL folder, right with sbcl.exe (for x86 there is collected already, check ```dlls/windows-x86-dlls.zip```)
 
 **Lets go**
 
