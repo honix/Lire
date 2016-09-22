@@ -33,7 +33,7 @@ Before run VLE check that you dependencies ready
 
 - Add ```...\MinGW\bin``` to PATH environment variable (make able sbcl to call ```gcc```)
 
-- Put dll's to your SBCL folder, right with sbcl.exe (for x86 there is collected already, check ```dlls/windows-x86-dlls.zip```)
+- Put dll's to your SBCL folder, right with sbcl.exe (for x86 there is collected already, check ```deps/windows-deps.zip```)
 
 **Lets go**
 
