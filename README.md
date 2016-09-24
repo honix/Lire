@@ -2,11 +2,11 @@
 ![vle](https://github.com/honix/Visual-List-Editor/blob/master/wiki/kung-fu.png)
 
 ## Status
-VLE in early-early development phase.
+VLE in early development phase.
 
 ## In short
 VLE is a lisp expressions visual editor. It works in link with Common Lisp (SBCL implementation).
-It allows to write programs using visual representations of s-expressions.
+It allows to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree).
 
 ## Story
 *...in development...*
