@@ -1,5 +1,5 @@
 # Visual List Editor (VLE)
-![vle](https://github.com/honix/Visual-List-Editor/blob/master/wiki/kung-fu.png)
+![vle](https://github.com/honix/Visual-List-Editor/blob/master/wiki/fibonacci.png)
 
 ## Status
 VLE in early development phase.
