@@ -6,7 +6,8 @@ VLE in early development phase.
 
 ## In short
 VLE is a lisp expressions visual editor. It works in link with Common Lisp (SBCL implementation).
-It allows to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree).
+
+VLE allows to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree).
 
 ## Story
 *...in development...*
