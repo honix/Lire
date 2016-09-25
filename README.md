@@ -12,6 +12,8 @@ VLE allows to write programs using kind of [abstract syntax tree (AST)](https://
 ## Story
 *...in development...*
 
+*"Maybe if lisp started today, we would a syntax of lisp look like trees"* -- **Hal Abelson** ([1986 lecture](https://www.youtube.com/watch?v=XYKRVNQ_MqE&feature=youtu.be&t=34m33s))
+
 ## Modeling list
 Try to enter
 ```+ Enter 10 Enter * Enter Enter 25 Enter 2```
