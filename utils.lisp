@@ -57,25 +57,27 @@
 
 (defun make-text (string)
   (or (gethash string *text-hash*)
-      (let* ((font         (sdl2-ttf:open-font
-			    (path "saxmono.ttf") 30))
-	     (texture      (car (gl:gen-textures 1)))
-	     (surface      (sdl2-ttf:render-utf8-blended
-			    font string 255 255 255 0))
-	     (surface-w    (surface-width surface))
-	     (surface-h    (surface-height surface))
-	     (surface-data (surface-pixels surface)))
-	(gl:bind-texture  :texture-2d texture)
-	(gl:tex-parameter :texture-2d :texture-min-filter :linear)
-	(gl:tex-parameter :texture-2d :texture-mag-filter :linear)
-	(gl:tex-image-2d  :texture-2d 0 :rgba surface-w surface-h 0
-			  :rgba :unsigned-byte surface-data)
-	(free-surface surface)
-	(sdl2-ttf:close-font font)
-	(setf (gethash string *text-hash*)
-	      (make-text-texture :texture texture
-				 :width (/ surface-w 30)
-				 :heigth (/ surface-h 30 -1))))))
+      (if (> (length string) 512)
+	  (make-text "cant show so many characters!")
+	  (let* ((font         (sdl2-ttf:open-font
+				(path "saxmono.ttf") 30))
+		 (texture      (car (gl:gen-textures 1)))
+		 (surface      (sdl2-ttf:render-utf8-blended
+				font string 255 255 255 0))
+		 (surface-w    (surface-width surface))
+		 (surface-h    (surface-height surface))
+		 (surface-data (surface-pixels surface)))
+	    (gl:bind-texture  :texture-2d texture)
+	    (gl:tex-parameter :texture-2d :texture-min-filter :linear)
+	    (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+	    (gl:tex-image-2d  :texture-2d 0 :rgba surface-w surface-h 0
+			      :rgba :unsigned-byte surface-data)
+	    (free-surface surface)
+	    (sdl2-ttf:close-font font)
+	    (setf (gethash string *text-hash*)
+		  (make-text-texture :texture texture
+				     :width (/ surface-w 30)
+				     :heigth (/ surface-h 30 -1)))))))
 
 
 (defparameter *texture-hash* (make-hash-table :test #'equal))

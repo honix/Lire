@@ -2,7 +2,8 @@
 ;; Visual List Editor - main
 ;;
 
-(ql:quickload '(:swank :cl-opengl :sdl2 :sdl2-ttf :sdl2-image))
+(ql:quickload '(:swank :bordeaux-threads
+		:cl-opengl :sdl2 :sdl2-ttf :sdl2-image))
 (load (merge-pathnames (pathname "contrib/swank-fuzzy.lisp")
 		       swank-loader:*source-directory*))
 
@@ -10,27 +11,6 @@
   (:use :cl :sdl2))
 
 (in-package :vle)
-
-;;
-;; communication
-;;
-
-(defun completion (string)
-  (map 'list
-       (lambda (n) (write-to-string (swank::fuzzy-matching.symbol n)))
-       (let ((comps (sort
-		     (swank::fuzzy-find-matching-symbols
-		      string *package*)
-		     #'> :key #'swank::fuzzy-matching.score)))
-	 (subseq comps 0 (min 9 (length comps))))))
-
-(defun e-eval (form &optional echo)
-  (when echo (print form))
-  (ignore-errors (eval form)))
-
-(defun function-symbol-p (symbol)
-  (e-eval
-   `(not (null (ignore-errors (symbol-function ',symbol))))))
 
 ;;
 ;; parameters
@@ -95,6 +75,28 @@
 (load "utils.lisp")
 (load "node.lisp")
 (load "evaluation.lisp")
+(load "client.lisp")
+
+;;
+;; communication
+;;
+
+(defun completion (string)
+  (map 'list
+       (lambda (n) (write-to-string (swank::fuzzy-matching.symbol n)))
+       (let ((comps (sort
+		     (swank::fuzzy-find-matching-symbols
+		      string *package*)
+		     #'> :key #'swank::fuzzy-matching.score)))
+	 (subseq comps 0 (min 9 (length comps))))))
+
+(defun e-eval (form)
+  (send-eval form))
+
+(defun function-symbol-p (symbol)
+  (ignore-errors (symbol-function symbol)))
+;  (e-eval
+;   `(not (null (ignore-errors (symbol-function ',symbol))))))
 
 ;;
 ;; main-screen routine
@@ -177,10 +179,11 @@
     (mapc #'draw-selection (cdr *selected-nodes*)))
 
 					; arguments tip
+#|
   (let ((node (find-if #'mouse-at-node-p *nodes-at-screen*)))
     (when node
       (draw-args-list node)))
-
+|#
 					; selector
   (when *selector*
     (let* ((x (min *selector-x* *mouse-x*))
@@ -200,7 +203,7 @@
       (setf (node-color node) (list 0.2 0.2 0.2))
       (draw-node node)))
   
-					; completion list
+#|					; completion list
   (let ((count -1)
 	(y (- *position-y* 0.05)))
     (dolist (comp *completions*)
@@ -208,12 +211,13 @@
 	  (gl:color 0 1 1 1.0)
 	  (gl:color 1 1 1 0.1))
       (text comp *position-x* (decf y 0.050) 0.025 0)))
-  
+|#
 					; gui
   (gl:load-identity)
   (gl:color 1 1 1 0.5)
   (text (format nil "fps: ~A" *fps*) -0.5 -0.9 0.03 0)
-  (text (princ-to-string *package*) 0.5 -0.9 0.03 0)
+  ;(text (princ-to-string *package*) 0.5 -0.9 0.03 0)
+  (text *last-log* 0.5 -0.9 0.03 0)
   (text "|" 0 -0.9 0.03 (* *time* 12))
   (text "|" 0 -0.9 0.03 (* *time* 42)))
 

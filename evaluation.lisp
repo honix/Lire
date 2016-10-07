@@ -16,21 +16,22 @@
   "Make lisp form"
   (with-slots (name parents childs) node
     (if (stringp name)
-	; symbols
-	(let ((symbol (e-eval `(read-from-string ,name))))
-	  (cond
-	    (childs                      ; (symbol child1 child2 ...)
-	     `(,symbol ,@(mapcar #'compose-code (sort-childs node))))
-	    ((and (null parents)         ; (function-symbol)
-		  (function-symbol-p symbol))
-	     `(,symbol))
-	    (t                           ; symbol
-	     symbol)))
-	; specials
+					; symbols
+	(cond
+	  (childs                      ; (symbol child1 child2 ...)
+	   `(,name ,@(mapcar #'compose-code (sort-childs node))))
+	  ((and (null parents)         ; (function-symbol)
+		(function-symbol-p name))
+	   `(,name))
+	  (t                           ; symbol
+	   name))
+					; specials
 	(case name
 	  (:list                         ; (child1 child2 ...)
-	   (mapcar #'compose-code
-		   (sort-childs node)))
+	   (if childs
+	       (mapcar #'compose-code
+		       (sort-childs node))
+	       "()"))
 	  (:dot                          ; child1 child2 ...
 	   (if (null (cdr childs))
 	       (compose-code (car childs)) ; short link
@@ -44,7 +45,7 @@
     (setf message "...")
     (let* ((cod (compose-code node))
 	   (eva (multiple-value-list
-		 (e-eval cod :echo)))
+		 (e-eval cod)))
 	   (res (first  eva))
 	   (err (second eva)))
       (if (typep err 'error)
@@ -54,10 +55,9 @@
 	  (progn
 	    (setf error nil)
 	    (setf message
-		  (write-to-string (if (eq (node-name node) :dot)
+		  (princ-to-string (if (eq (node-name node) :dot)
 				       cod
-				       res)
-				   :length 16)))))))
+				       res))))))))
 
 (defun eval-node-threaded (node)
   (sb-thread:make-thread #'eval-node
