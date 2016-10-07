@@ -26,9 +26,11 @@ Before run VLE check that you dependencies ready
 
 **Linux**
 
-- Ubuntu (and Debian family): ```sudo apt-get install libffi6 libffi-dev libsdl2 libsdl2-image libsdl2-ttf```
+- Ubuntu (apt-get): ```sudo apt-get install libffi6 libffi-dev libsdl2 libsdl2-image libsdl2-ttf```
 
-- Fedora: ```sudo dnf install libffi libffi-dev SDL2 SDL2_image SDL2_ttf```
+- Fedora (dnf): ```sudo dnf install libffi libffi-dev SDL2 SDL2_image SDL2_ttf```
+
+- ArchLinux (pacman): ```sudo pacman -S libffi sdl2 sdl2_ttf sdl2_image```
 
 **Windows**
 
