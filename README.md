@@ -4,7 +4,7 @@
 ## Status
 VLE in early development phase.
 
-(now i implementing lisp to lisp connection through swank for distant evaluation. this time is crashy and buggy. please dont be afraid)
+(now i implementing lisp to lisp connection through swank for distant evaluation. this time is crashy and buggy. please dont be afraid and load from stable branch)
 
 ## In short
 VLE is a lisp expressions visual editor. It works in link with Common Lisp (SBCL implementation).
