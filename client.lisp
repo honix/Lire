@@ -13,7 +13,6 @@
 (bordeaux-threads:make-thread
  (lambda ()
    (uiop:run-program "sbcl --load server.lisp")))
-;; closing process then?
 
 ;; Connect
 (defparameter *swank-connection* nil)
@@ -22,26 +21,9 @@
 (defun log-message (string)
   (setf *lisp-dialog* (concatenate 'string *lisp-dialog* string)))
 
-(defun log-demon ()
-  (bordeaux-threads:make-thread
-   (lambda ()
-     (loop
-	(sleep 0.3)
-	(let ((s ""))
-	  (dolist (e (ignore-errors (lime:pull-all-events
-				     *swank-connection*)))
-	    (setf s (concatenate 'string s 
-				 (typecase e
-				   (lime:write-string-event
-				    (lime:event-string e))
-				   (lime:debugger-event
-				    (format nil "!debugger say smthng~%"))
-				   (t
-				    (format nil "!unknow event~%"))))))
-	  (log-message s))))))
-
 (defun connect-to-server (&optional silent)
-  (format t "Connection")
+  (unless silent
+    (log-message (format nil "Connection")))
   (setf *swank-connection*
 	(lime:make-connection (uiop:hostname) *port*))
   (let ((counter 0))
@@ -49,7 +31,6 @@
        (when (ignore-errors (lime:connect *swank-connection*))
 	 (unless silent
 	   (log-message (format nil "Done!~%")))
-	 (log-demon)
 	 (return))
        (when (> counter 2)
 	 (unless silent
@@ -72,6 +53,25 @@
 		 (prin1-to-string (read-symbols form))))
 
 (connect-to-server)
+
+(defparameter *log-thread*
+  (bordeaux-threads:make-thread
+   (lambda ()
+     (loop
+	(sleep 0.3)
+	(let ((s ""))
+	  (dolist (e (ignore-errors (lime:pull-all-events
+				     *swank-connection*)))
+	    (setf s (concatenate
+		     'string s 
+		     (typecase e
+		       (lime:write-string-event
+			(lime:event-string e))
+		       (lime:debugger-event
+			(format nil "!debugger say smthng~%"))
+		       (t
+			(format nil "!unknow event~%"))))))
+	  (log-message s))))))
 
 #|
   (let ((counter (or counter 0)))

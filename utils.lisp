@@ -47,67 +47,65 @@
 (defstruct text-texture
   texture width heigth)
 
-(defparameter *text-hash* (make-hash-table :test #'equal))
+(let ((text-hash (make-hash-table :test #'equal)))
+  (defun clean-text-hash ()
+    (maphash (lambda (key value) 
+	       (gl:delete-textures (list (text-texture-texture value))))
+	     text-hash)
+    (clrhash text-hash))
 
-(defun clean-text-hash ()
-  (maphash (lambda (key value) 
-	     (gl:delete-textures (list (text-texture-texture value))))
-	   *text-hash*)
-  (clrhash *text-hash*))
-
-(defun make-text (string)
-  (or (gethash string *text-hash*)
-      (cond
-	((> (length string) 512)
-	 (make-text "cant show so many characters!"))
-	((= (length string) 0)
-	 (make-text " "))
-	(t
-	  (let* ((font         (sdl2-ttf:open-font
-				(path "saxmono.ttf") 30))
-		 (texture      (car (gl:gen-textures 1)))
-		 (surface      (sdl2-ttf:render-utf8-blended
-				font string 255 255 255 0))
-		 (surface-w    (surface-width surface))
-		 (surface-h    (surface-height surface))
-		 (surface-data (surface-pixels surface)))
-	    (gl:bind-texture  :texture-2d texture)
-	    (gl:tex-parameter :texture-2d :texture-min-filter :linear)
-	    (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
-	    (gl:tex-image-2d  :texture-2d 0 :rgba surface-w surface-h 0
-			      :rgba :unsigned-byte surface-data)
-	    (free-surface surface)
-	    (sdl2-ttf:close-font font)
-	    (setf (gethash string *text-hash*)
-		  (make-text-texture :texture texture
-				     :width (/ surface-w 30)
-				     :heigth (/ surface-h 30 -1))))))))
+  (defun make-text (string)
+    (or (gethash string text-hash)
+	(cond
+	  ((> (length string) 512)
+	   (make-text "cant show so many characters!"))
+	  ((= (length string) 0)
+	   (make-text " "))
+	  (t
+	   (let* ((font         (sdl2-ttf:open-font
+				 (path "saxmono.ttf") 30))
+		  (texture      (car (gl:gen-textures 1)))
+		  (surface      (sdl2-ttf:render-utf8-blended
+				 font string 255 255 255 0))
+		  (surface-w    (surface-width surface))
+		  (surface-h    (surface-height surface))
+		  (surface-data (surface-pixels surface)))
+	     (gl:bind-texture  :texture-2d texture)
+	     (gl:tex-parameter :texture-2d :texture-min-filter :linear)
+	     (gl:tex-parameter :texture-2d :texture-mag-filter :linear)
+	     (gl:tex-image-2d  :texture-2d 0 :rgba surface-w surface-h 0
+			       :rgba :unsigned-byte surface-data)
+	     (free-surface surface)
+	     (sdl2-ttf:close-font font)
+	     (setf (gethash string text-hash)
+		   (make-text-texture :texture texture
+				      :width (/ surface-w 30)
+				      :heigth (/ surface-h 30 -1)))))))))
 
 
-(defparameter *texture-hash* (make-hash-table :test #'equal))
+(let ((texture-hash (make-hash-table :test #'equal)))
+  (defun clean-texture-hash ()
+    (maphash (lambda (key value) 
+	       (gl:delete-textures (list value)))
+	     texture-hash)
+    (clrhash texture-hash))
 
-(defun clean-texture-hash ()
-  (maphash (lambda (key value) 
-	     (gl:delete-textures (list value)))
-	   *texture-hash*)
-  (clrhash *texture-hash*))
-
-(defun load-texture (file-name &optional (format :rgba)
-				 (filter :linear))
-  (or (gethash file-name *texture-hash*)
-      (let* ((texture      (car (gl:gen-textures 1)))
-	     (surface      (sdl2-image:load-image (path file-name)))
-	     (surface-w    (surface-width surface))
-	     (surface-h    (surface-height surface))
-	     (surface-data (surface-pixels surface)))
-	(gl:bind-texture  :texture-2d texture)
-	(gl:tex-parameter :texture-2d :texture-min-filter filter)
-	(gl:tex-parameter :texture-2d :texture-mag-filter filter)
-	(gl:tex-image-2d  :texture-2d 0 :rgba surface-w surface-h 0
-			  format ; :bgr - bmp  :rgba - png
-			  :unsigned-byte surface-data)
-	(free-surface surface)
-	(setf (gethash file-name *texture-hash*) texture))))
+  (defun load-texture (file-name &optional (format :rgba)
+				   (filter :linear))
+    (or (gethash file-name texture-hash)
+	(let* ((texture      (car (gl:gen-textures 1)))
+	       (surface      (sdl2-image:load-image (path file-name)))
+	       (surface-w    (surface-width surface))
+	       (surface-h    (surface-height surface))
+	       (surface-data (surface-pixels surface)))
+	  (gl:bind-texture  :texture-2d texture)
+	  (gl:tex-parameter :texture-2d :texture-min-filter filter)
+	  (gl:tex-parameter :texture-2d :texture-mag-filter filter)
+	  (gl:tex-image-2d  :texture-2d 0 :rgba surface-w surface-h 0
+			    format ; :bgr - bmp  :rgba - png
+			    :unsigned-byte surface-data)
+	  (free-surface surface)
+	  (setf (gethash file-name texture-hash) texture)))))
 
 ;;;
 ;;; drawing
@@ -195,16 +193,23 @@
       (quad-textured texture (+ x (* width size)) y
 		     rotation (* width size) (* heigth size)))))
 
-(defun split-by (seq splitter)
-  (labels ((split-by-loop (seq splitter acc)
-	     (let ((s-pos (position splitter seq)))
-	       (if s-pos
-		   (split-by-loop (subseq seq (+ s-pos 1))
-				  splitter
-				  (append acc
-					  (list (subseq seq 0 s-pos))))
-		   (append acc (list seq))))))
-    (split-by-loop seq splitter ())))
+(let ((last-result nil)
+      (last-hash 0))
+  (defun split-by (seq splitter)
+    (if (= (+ (sxhash seq) (sxhash splitter))
+	   last-hash)
+	last-result
+	(labels ((split-by-loop (seq splitter acc)
+		   (let ((s-pos (position splitter seq)))
+		     (if s-pos
+			 (split-by-loop (subseq seq (+ s-pos 1))
+					splitter
+					(append acc
+						(list (subseq seq
+							      0 s-pos))))
+			 (append acc (list seq))))))
+	  (setf last-hash (+ (sxhash seq) (sxhash splitter))
+		last-result (split-by-loop seq splitter ()))))))
 
 (defun text-multiline (string x y size rotation)
   (gl:color 1 1 1 1)

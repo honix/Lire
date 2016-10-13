@@ -28,10 +28,9 @@
 					; specials
 	(case name
 	  (:list                         ; (child1 child2 ...)
-	   (if childs
-	       (mapcar #'compose-code
-		       (sort-childs node))
-	       "()"))
+	   ;(if childs
+	   (mapcar #'compose-code (sort-childs node)))
+	   ;    "()"))
 	  (:dot                          ; child1 child2 ...
 	   (if (null (cdr childs))
 	       (compose-code (car childs)) ; short link
