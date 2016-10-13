@@ -57,8 +57,12 @@
 
 (defun make-text (string)
   (or (gethash string *text-hash*)
-      (if (> (length string) 512)
-	  (make-text "cant show so many characters!")
+      (cond
+	((> (length string) 512)
+	 (make-text "cant show so many characters!"))
+	((= (length string) 0)
+	 (make-text " "))
+	(t
 	  (let* ((font         (sdl2-ttf:open-font
 				(path "saxmono.ttf") 30))
 		 (texture      (car (gl:gen-textures 1)))
@@ -77,7 +81,7 @@
 	    (setf (gethash string *text-hash*)
 		  (make-text-texture :texture texture
 				     :width (/ surface-w 30)
-				     :heigth (/ surface-h 30 -1)))))))
+				     :heigth (/ surface-h 30 -1))))))))
 
 
 (defparameter *texture-hash* (make-hash-table :test #'equal))
@@ -191,6 +195,26 @@
       (quad-textured texture (+ x (* width size)) y
 		     rotation (* width size) (* heigth size)))))
 
+(defun split-by (seq splitter)
+  (labels ((split-by-loop (seq splitter acc)
+	     (let ((s-pos (position splitter seq)))
+	       (if s-pos
+		   (split-by-loop (subseq seq (+ s-pos 1))
+				  splitter
+				  (append acc
+					  (list (subseq seq 0 s-pos))))
+		   (append acc (list seq))))))
+    (split-by-loop seq splitter ())))
+
+(defun text-multiline (string x y size rotation)
+  (gl:color 1 1 1 1)
+  (let* ((by-line (split-by string #\Newline))
+	 (count (length by-line)))
+    (dolist (s by-line)
+      (gl:color 1 1 1 (- 1.5 (/ count (length by-line))))
+      (text-align s x (+ y (* count size 2))
+		  size rotation)
+      (decf count))))
 
 ;;;
 ;;; window-utils

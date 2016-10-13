@@ -25,7 +25,9 @@
 ;; screen
 (defparameter *screen-width* 800)
 (defparameter *screen-height* 600)
+(defparameter *screen-aspect* (/ *screen-width* *screen-height*))
 (defparameter *show-editor* t)
+(defparameter *lisp-dialog* "LISP-DIALOG")
 ;; completions
 (defparameter *completions* nil)
 (defparameter *completions-select* -1)
@@ -129,6 +131,10 @@
 
   (when (not *show-editor*)
     (return-from main-screen))
+
+					; back lisp-dialog
+  (text-multiline *lisp-dialog* (+ (- *screen-aspect*) 0.02)
+		  -1.0 0.02 0)
   
 					; update vle
   (when *key-move*
@@ -214,12 +220,8 @@
 |#
 					; gui
   (gl:load-identity)
-  (gl:color 1 1 1 0.5)
-  (text (format nil "fps: ~A" *fps*) -0.5 -0.9 0.03 0)
-  ;(text (princ-to-string *package*) 0.5 -0.9 0.03 0)
-  (text *last-log* 0.5 -0.9 0.03 0)
-  (text "|" 0 -0.9 0.03 (* *time* 12))
-  (text "|" 0 -0.9 0.03 (* *time* 42)))
+  (gl:color 1 1 1 0.1)
+  (text (format nil "~A" *fps*) 0.9 0.9 0.05 0))
 
 (let ((last-click-time 0.0))
   (defun press-mouse-left ()
@@ -327,6 +329,7 @@
 	(gl:clear-color 0.5 0.5 0.5 1)
 
 	(repose)
+	
 
 	(with-event-loop (:method :poll)
 	  (:textinput   (:text text)
@@ -469,10 +472,12 @@
 			       event
 			       sdl2-ffi:+sdl-windowevent-size-changed+)
 			  (setf *screen-width* width
-				*screen-height* height)
+				*screen-height* height
+				*screen-aspect* (/ width height))
 			  (resize-viewport width height)
 			  (repose)))
 	  (:quit        ()
+			(send-eval '(quit))
 			(sdl2-ttf:quit)
 			(clean-text-hash)
 			(clean-texture-hash)

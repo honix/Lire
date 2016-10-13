@@ -99,8 +99,8 @@
       (when message
 	(if error
 	    (gl:color 1 1 0 0.5)	
-	    (gl:color 0 1 1))
-	(text message x (+ y 0.1) 0.04 0)))))
+	    (gl:color 0 1 1 0.5))
+	(text message x (+ y 0.1) 0.03 0)))))
 
 (defun draw-selection (node &optional first)
   (with-slots (x y width) node

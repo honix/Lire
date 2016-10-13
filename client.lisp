@@ -2,6 +2,8 @@
 ;; Client connection setup
 ;;
 
+(in-package :VLE)
+
 (ql:quickload '(:lime :bordeaux-threads))
 
 (defparameter *port* 15001)
@@ -15,53 +17,63 @@
 
 ;; Connect
 (defparameter *swank-connection* nil)
+(defparameter *lisp-dialog* (format nil "LISP-DIALOG~%"))
 
-(defun connect-to-server ()
+(defun log-message (string)
+  (setf *lisp-dialog* (concatenate 'string *lisp-dialog* string)))
+
+(defun log-demon ()
+  (bordeaux-threads:make-thread
+   (lambda ()
+     (loop
+	(sleep 0.3)
+	(let ((s ""))
+	  (dolist (e (ignore-errors (lime:pull-all-events
+				     *swank-connection*)))
+	    (setf s (concatenate 'string s 
+				 (typecase e
+				   (lime:write-string-event
+				    (lime:event-string e))
+				   (lime:debugger-event
+				    (format nil "!debugger say smthng~%"))
+				   (t
+				    (format nil "!unknow event~%"))))))
+	  (log-message s))))))
+
+(defun connect-to-server (&optional silent)
   (format t "Connection")
   (setf *swank-connection*
 	(lime:make-connection (uiop:hostname) *port*))
   (let ((counter 0))
     (loop
-       (when (> counter 2)
-	 (format t "Time-out~%")
-	 (return))
        (when (ignore-errors (lime:connect *swank-connection*))
-	 (format t "Done!~%")
+	 (unless silent
+	   (log-message (format nil "Done!~%")))
+	 (log-demon)
+	 (return))
+       (when (> counter 2)
+	 (unless silent
+	   (log-message (format nil "Time-out~%")))
 	 (return))
        (sleep 0.01)
        (incf counter 0.01)
-       (format t "."))))
+       (unless silent
+	 (log-message (format nil "."))))))
 
-(connect-to-server)
-
-(defparameter *last-log* "...")
-
-(defun logger (direction string)
-  (setf *last-log* (format nil "@~A <> ~A~&" direction string))
-  (with-open-file (s "send-eval-log.log"
-		     :direction :output
-		     :if-does-not-exist :create
-		     :if-exists :append)
-    (format s "@~A <> ~A~&" direction string)))
-
-;; Utils
+;; Evaluating
 (defun read-symbols (form)
   "From ('defun' 'func' ('x' 'y')) to (defun func (x y))"
   (cond ((atom form) (if (stringp form) (read-from-string form) form))
 	((listp form) (mapcar #'read-symbols form))))
 
-(defun send-eval (form &optional uroboros counter)
-  (when (> (lime:connection-debug-level *swank-connection*) 0)
-    (logger "debug!"
-	    (lime:connection-debug-level *swank-connection*))
-    (lime:abort-debugger *swank-connection*)
-    (return-from send-eval))
-  (lime:abort-debugger *swank-connection*)
-  (lime:pull-all-events *swank-connection*) ; make empty
-  (let ((message (prin1-to-string (read-symbols form))))
-    ; log out every message
-    (logger "OUT" message)
-    (lime:evaluate *swank-connection* message))
+(defun send-eval (form)
+  (connect-to-server :silent)
+  (lime:evaluate *swank-connection*
+		 (prin1-to-string (read-symbols form))))
+
+(connect-to-server)
+
+#|
   (let ((counter (or counter 0)))
     (loop
        (when (and (not uroboros) (> counter 1))
@@ -78,3 +90,4 @@
 	      (return (values as-string counter))))
 	   (lime:debugger-event
 	    (return :error)))))))
+|#
