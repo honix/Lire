@@ -1,12 +1,12 @@
 ;;
-;; Client connection setup
+;; Visual List Editor - Client connection setup
 ;;
 
 (in-package :VLE)
 
 (ql:quickload '(:lime :bordeaux-threads))
 
-(defparameter *port* 15001)
+(defparameter *port* 1501)
 
 ;; Wake server
 (format t "Run server side!~%")
@@ -36,23 +36,18 @@
 	 (unless silent
 	   (log-message (format nil "Time-out~%")))
 	 (return))
-       (sleep 0.01)
-       (incf counter 0.01)
+       (sleep 0.5)
+       (incf counter 0.5)
        (unless silent
 	 (log-message (format nil "."))))))
 
-;; Evaluating
-(defun read-symbols (form)
-  "From ('defun' 'func' ('x' 'y')) to (defun func (x y))"
-  (cond ((atom form) (if (stringp form) (read-from-string form) form))
-	((listp form) (mapcar #'read-symbols form))))
-
-(defun send-eval (form)
-  (connect-to-server :silent)
-  (lime:evaluate *swank-connection*
-		 (prin1-to-string (read-symbols form))))
-
 (connect-to-server)
+
+;; Evaluating
+(defun send-eval (form)
+  (connect-to-server :silent) ; re-enable connection
+  (lime:evaluate *swank-connection*
+		 (princ-to-string form)))
 
 (defparameter *log-thread*
   (bordeaux-threads:make-thread
@@ -67,27 +62,10 @@
 		     (typecase e
 		       (lime:write-string-event
 			(lime:event-string e))
-		       (lime:debugger-event
-			(format nil "!debugger say smthng~%"))
+		       ;(lime:debugger-event
+			;(format nil "!debugger-event~%"))
+		       ;(lime:switch-package-event
+			;(format nil "!package-event~%"))
 		       (t
-			(format nil "!unknow event~%"))))))
+			(format nil "!~A~%" e))))))
 	  (log-message s))))))
-
-#|
-  (let ((counter (or counter 0)))
-    (loop
-       (when (and (not uroboros) (> counter 1))
-	 ; reconnect
-	 (connect-to-server)
-	 (return (send-eval form)))
-       (sleep 0.03)
-       (incf counter 0.03)
-       (let ((answer (car (lime:pull-all-events *swank-connection*))))
-	 (typecase answer
-	   (lime:write-string-event
-	    (let ((as-string (slot-value answer 'string)))
-	      (logger "IN" as-string)
-	      (return (values as-string counter))))
-	   (lime:debugger-event
-	    (return :error)))))))
-|#

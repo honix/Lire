@@ -478,7 +478,7 @@
 			  (repose)))
 	  (:quit        ()
 			(bordeaux-threads:destroy-thread *log-thread*)
-			(send-eval '(uiop:quit))
+			(send-eval '("uiop:quit"))
 			(sdl2-ttf:quit)
 			(clean-text-hash)
 			(clean-texture-hash)
