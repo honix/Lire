@@ -5,7 +5,7 @@
 VLE in early development phase.
 
 ## In short
-VLE is a lisp expressions visual editor. It works in link with Common Lisp (SBCL implementation).
+VLE is a lisp expressions visual editor. It works in link with Common Lisp.
 
 VLE allows to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree).
 
@@ -36,9 +36,9 @@ Before run VLE check that you dependencies ready
 
 - Install [MinGW](https://sourceforge.net/projects/mingw/files/Installer) with ```mingw32-base``` package, and copy ```ffi.h``` and ```ffitarget.h``` to ```...\MinGW\include```
 
-- Add ```...\MinGW\bin``` to PATH environment variable (make able sbcl to call ```gcc```)
+- Add ```...\MinGW\bin``` to PATH environment variable (make able common lisp to call ```gcc```)
 
-- Put dll's to your SBCL folder, right with sbcl.exe (for x86 there is collected already, check ```deps/windows-deps.zip```)
+- Put dll's to your SBCL / CCL folder, right with *.exe (for x86 there is collected already, check ```deps/windows-deps.zip```)
 
 **Lets go**
 

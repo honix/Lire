@@ -2,7 +2,10 @@
 ;; Visual List Editor - main
 ;;
 
-(ql:quickload '(:swank :cl-opengl :sdl2 :sdl2-ttf :sdl2-image))
+(ql:quickload '(:swank :bordeaux-threads
+		:cl-opengl :sdl2
+		:sdl2-ttf :sdl2-image))
+
 (load (merge-pathnames (pathname "contrib/swank-fuzzy.lisp")
 		       swank-loader:*source-directory*))
 
@@ -474,4 +477,4 @@
 			(clean-texture-hash)
 			t))))))
 
-(sb-thread:make-thread #'main)
+(bordeaux-threads:make-thread #'main)

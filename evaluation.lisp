@@ -60,8 +60,7 @@
 				   :length 16)))))))
 
 (defun eval-node-threaded (node)
-  (sb-thread:make-thread #'eval-node
-			 :arguments (list node)))
+  (bordeaux-threads:make-thread (lambda () (eval-node node))))
 
 (defun eval-tree (node)
   "Take some node from tree, find heads and evaluate"
