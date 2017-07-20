@@ -2,7 +2,7 @@
 ![vle](https://github.com/honix/Visual-List-Editor/blob/master/wiki/fibonacci.png)
 
 ## Status
-VLE in early development phase.
+VLE research is completed for today. It demonstrates visual way of lisp programming. This knowledge will be used for further projects.
 
 ## In short
 VLE is a lisp expressions visual editor. It works in link with Common Lisp.
@@ -10,8 +10,6 @@ VLE is a lisp expressions visual editor. It works in link with Common Lisp.
 VLE allows to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree).
 
 ## Story
-*...in development...*
-
 *"Maybe if lisp started today, we would a syntax of lisp look like trees"* -- **Hal Abelson** ([1986 lecture](https://www.youtube.com/watch?v=XYKRVNQ_MqE&feature=youtu.be&t=34m33s))
 
 ## Modeling list
