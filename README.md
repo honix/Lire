@@ -51,6 +51,8 @@ Accumulative select | Shift
 Pan | Right-mouse-button drag
 Zoom | Scroll
 Create new node | (enter node name) Enter
+Create list node (wraps arguments) | Space Enter
+Create dot node (does nothing with argument) | '.' Enter
 Switch to last node | Enter
 Evaluate tree | Tab or Double-left click
 Delete node | Delete
