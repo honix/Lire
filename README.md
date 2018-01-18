@@ -1,16 +1,12 @@
-# Visual List Editor (VLE)
-![vle](https://github.com/honix/Visual-List-Editor/blob/master/wiki/fibonacci.png)
+# Lire
+![lire](https://github.com/honix/Lire/blob/master/wiki/pythagoras.png)
 
-## Status
-VLE research is completed for today. It demonstrates visual way of lisp programming. This knowledge will be used for further projects.
+*"Maybe if lisp started today, we would a syntax of lisp look like trees"* -- **Hal Abelson** ([1986 lecture](https://www.youtube.com/watch?v=XYKRVNQ_MqE&feature=youtu.be&t=34m33s))
 
 ## In short
-VLE is a lisp expressions visual editor. It works in link with Common Lisp.
+Lire is a lisp expressions visual editor. It runs on top of Common Lisp.
 
-VLE allows to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree).
-
-## Story
-*"Maybe if lisp started today, we would a syntax of lisp look like trees"* -- **Hal Abelson** ([1986 lecture](https://www.youtube.com/watch?v=XYKRVNQ_MqE&feature=youtu.be&t=34m33s))
+Lire allows to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree).
 
 ## Modeling list
 Try to enter
@@ -20,7 +16,7 @@ This will make list
 ```(+ 10 (* 25 2))```
 
 ## Run from source
-Before run VLE check that you dependencies ready
+Before run Lire check that you dependencies ready
 
 **Linux**
 
@@ -40,7 +36,7 @@ Before run VLE check that you dependencies ready
 
 **Lets go**
 
-```cd your/path/to/vle``` *and* ```sbcl --load main-with-utf8.lisp```
+```cd your/path/to/Lire``` *and* ```sbcl --load main-with-utf8.lisp```
 
 ## Controls
 Action | Bind

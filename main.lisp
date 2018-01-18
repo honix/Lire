@@ -405,8 +405,8 @@
 	  (:keyup       (:keysym keysym)
 			(case (scancode-symbol
 			       (scancode-value keysym))
-			  (:scancode-escape
-			   (push-event :quit))
+			  ;; (:scancode-escape
+			  ;;  (push-event :quit))
 			  ((:scancode-lshift :scancode-rshift)
 			   (setf *shift* nil))
 			  (:scancode-lalt
