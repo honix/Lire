@@ -4,9 +4,9 @@
 *"Maybe if lisp started today, we would a syntax of lisp look like trees"* -- **Hal Abelson** ([1986 lecture](https://www.youtube.com/watch?v=XYKRVNQ_MqE&feature=youtu.be&t=34m33s))
 
 ## In short
-Lire is a lisp expressions visual editor. It runs on top of Common Lisp.
+Lire is a lisp expressions visual editor, this allows you to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree). It runs on top of Common Lisp.
 
-Lire allows to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree).
+Lire is work in progress project.
 
 ## Modeling list
 Try to enter
