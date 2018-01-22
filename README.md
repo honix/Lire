@@ -36,7 +36,7 @@ Before run Lire check that you dependencies ready
 
 **Lets go**
 
-```cd your/path/to/Lire``` *and* ```sbcl --load main-with-utf8.lisp```
+```cd your/path/to/Lire``` *and* ```sbcl --load lire.lisp```
 
 ## Controls
 Action | Bind
