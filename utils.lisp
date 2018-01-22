@@ -8,7 +8,7 @@
   (merge-pathnames (concatenate 'string "media/" file-name)))
 
 ;;;
-;;; evaly
+;;  Evaly
 ;;;
 
 (defun e-eval (form &optional echo)
@@ -20,7 +20,7 @@
    `(not (null (ignore-errors (symbol-function ',symbol))))))
 
 ;;;
-;;; math
+;;  Math
 ;;;
 
 (defun lerp (from to amount)
@@ -32,7 +32,7 @@
          (- (mod (+ ,what 0.1) 0.2) 0.1)))
 
 ;;;
-;;; color
+;;  Color
 ;;;
 
 (defun hsv-to-rgb (h s v)
@@ -48,7 +48,7 @@
     (mapcar (lambda (x) (+ x m)) rgb-n)))
 
 ;;;
-;;; lists
+;;  Lists
 ;;;
 
 (defun flatten (l &key (test #'atom))
@@ -57,7 +57,7 @@
         (t (loop for a in l nconc (flatten a :test test)))))
 
 ;;;
-;;; textures hashing and loading
+;;  Textures hashing and loading
 ;;;
 
 (defstruct text-texture
@@ -122,7 +122,7 @@
         (setf (gethash file-name *texture-hash*) texture))))
 
 ;;;
-;;; drawing
+;;  Low level drawing
 ;;;
 
 (defmacro define-textured (fname &body body)
@@ -209,7 +209,7 @@
 
 
 ;;;
-;;; window-utils
+;;  Window utils
 ;;;
 
 (defun resize-viewport (width height)

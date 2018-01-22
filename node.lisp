@@ -45,10 +45,6 @@
                          :x x :y y)))
     (node-update node)))
 
-;;
-;; think only at screen 
-;;
-
 (defun node-in-rect (node x1 y1 x2 y2)
   (let ((x1 (min x1 x2))
         (y1 (min y1 y2))
@@ -76,9 +72,9 @@
     (setf nodes-at-screen
           (remove-if-not #'node-at-screen nodes))))
 
-;;
-;; node draw functions
-;;
+;;;
+;;  Node drawing functions
+;;;
 
 (defun draw-wires (node)
   (with-slots (time) *window*
@@ -128,7 +124,6 @@
 (let ((last-node nil)
       (last-value " "))
   (defun args-list (node)
-    "Returns string with function or macro arguments"
     (if (equal node last-node)
         last-value
         (setf last-node node
@@ -159,9 +154,9 @@
          (node-x child) (+ (node-y child) 0.10) 0.03 0)
         (incf count)))))
 
-;;
-;; nodes utils
-;;
+;;;
+;;  Node utils
+;;;
 
 (defun snap-node-to-grid (node)
   (snap-to-grid (node-x node))
@@ -254,16 +249,16 @@ horizontaly equal, sort it by vertical (from upper)"
                position-x position-y)
       *window*
     (if (string= new-node-name "")
-                                        ; hit 'enter' with out symbol -> jump to last created node
+                                        ; hit 'enter' without symbol -> jump to last created node
         (let ((node (car nodes)))
           (when node
             (setf selected-nodes (list (car nodes)))
             (setf position-y (- (node-y node) 0.2))
             (setf position-x (node-x node))))
-                                        ; hit 'enter' with symbol
+                                        ; hit 'enter' with some symbol
         (let ((under (find-if #'position-at-node-p nodes-at-screen)))
           (if under
-                                        ; new node overlaps olds -> replace it name!
+                                        ; new node overlaps old one -> replace it name!
               (progn
                 (setf (node-name under)
                       (cond ((string= new-node-name " ") :list)

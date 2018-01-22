@@ -1,30 +1,25 @@
 ;;
-;; Lire - window setup
+;; Lire - window
 ;;
 
 (in-package :lire)
 
 (defstruct window
-  (time        0.0)
-  (delta       0.0)
-  (second-time 0.0)
-  (temp-fps      0)
-  (fps           0)
+  (time            0.0)
+  (delta           0.0)
+  (second-time     0.0)
+  (temp-fps          0)
+  (fps               0)
   
-  (screen-width  800)
-  (screen-height 600)
+  (screen-width    800) (screen-height 600)
   
   (completions       nil)
   (completions-select -1)
   
-  (position-x      0)
-  (position-y      0)
-  (camera-x        0)
-  (camera-y        0)
-  (real-camera-x   0)
-  (real-camera-y   0)
-  (zoom          1.0)
-  (real-zoom     0.0)
+  (position-x        0) (position-y      0)
+  (camera-x          0) (camera-y        0)
+  (real-camera-x     0) (real-camera-y   0)
+  (zoom            1.0) (real-zoom     0.0)
 
   (new-node-name    "")
   (nodes            ())
@@ -32,21 +27,22 @@
   (nodes-at-screen  ())
   (selected-nodes   ())
 
-  (selector nil)
-  (selector-x 0)
-  (selector-y 0)
+  (selector        nil)
+  (selector-x        0) (selector-y      0)
 
-  (mouse-x       0)
-  (mouse-y       0)
-  (shift       nil)
-  (key-move    nil)
-  (mouse-left  nil)
-  (mouse-right nil))
+  (mouse-x           0) (mouse-y         0)
+  (shift           nil)
+  (key-move        nil)
+  (mouse-left      nil) (mouse-right   nil))
+
 
 (defparameter *window* (make-window))
 
+;;;
+;;  Symbol finder
+;;;
+
 (defun completion (string)
-  "Swank symbol matching"
   (map 'list
        (lambda (n) (write-to-string (swank::fuzzy-matching.symbol n)))
        (let ((comps (sort
@@ -59,6 +55,10 @@
   (with-slots (mouse-x mouse-y position-x position-y) *window*
     (setf mouse-x position-x
           mouse-y position-y)))
+
+;;;
+;;  Every-frame procedures
+;;;
 
 (defun timing (delta)
   (with-slots (time second-time fps temp-fps) *window*
@@ -112,7 +112,6 @@
                fps)
       *window*
 
-    (gl:enable :blend)
     (gl:clear :color-buffer-bit)
     
     (gl:load-identity)
@@ -189,27 +188,15 @@
     (text "|" 0 -0.9 0.03 (* time 12))
     (text "|" 0 -0.9 0.03 (* time 42))))
 
+
 (defun main-screen (delta)
-  "Update and render"
-  
   (timing delta)
   (input-update)
   (draw-lire))
 
-(defun idler (window)
-  "Every frame routines"
-  (with-slots (delta)
-      *window*
-    (let ((old-time (get-internal-real-time)))
-      (main-screen delta)
-      
-      (gl:flush)
-      (gl-swap-window window)
-      
-      (setf delta
-            (/ (- (get-internal-real-time)
-                  old-time)
-               internal-time-units-per-second)))))
+;;;
+;;  Input procedures
+;;;
 
 (let ((last-click-time 0.0))
   (defun press-mouse-left ()
@@ -324,12 +311,24 @@
       (setf selected-nodes ())
       (setf connecting-nodes ()))))
 
-;;
-;; init and input setup
-;;
+;;;
+;;  Window initialization and input binding
+;;;
+
+(defun idler (window)
+  (with-slots (delta) *window*
+    (let ((old-time (get-internal-real-time)))
+      (main-screen delta)
+
+      (gl:flush)
+      (gl-swap-window window)
+
+      (setf delta
+            (/ (- (get-internal-real-time)
+                  old-time)
+               internal-time-units-per-second)))))
 
 (defun run-lire ()
-  "Init all stuff and define events"
   (with-slots (nodes
                connecting-nodes
                completions
@@ -354,10 +353,9 @@
                                 :flags '(:shown :resizable :opengl))
         (with-gl-context (gl-context lire-window)
           (gl-make-current lire-window gl-context)
-          (gl:enable :texture-2d)
+          (gl:enable :texture-2d :blend)
           (gl:blend-func :src-alpha :one-minus-src-alpha)
           (resize-viewport screen-width screen-height)
-          (gl:clear-color 0.5 0.5 0.5 1)
 
           (repose)
 

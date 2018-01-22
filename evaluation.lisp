@@ -31,7 +31,6 @@
                            (sort-childs node)))))))))
 
 (defun eval-node (node)
-  "Node must be head of tree"
   (with-slots (message error) node
     (setf message "...")
     (let* ((cod (compose-code node))
@@ -55,7 +54,6 @@
   (bordeaux-threads:make-thread (lambda () (eval-node node))))
 
 (defun eval-tree (node)
-  "Take some node from tree, find heads and evaluate"
   (let ((heads (if (listp node)
                    (remove-duplicates
                     (flatten (mapcar #'find-heads node)))
