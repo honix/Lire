@@ -8,12 +8,28 @@
   (merge-pathnames (concatenate 'string "media/" file-name)))
 
 ;;;
+;;; evaly
+;;;
+
+(defun e-eval (form &optional echo)
+  (when echo (print form))
+  (ignore-errors (eval form)))
+
+(defun function-symbol-p (symbol)
+  (e-eval
+   `(not (null (ignore-errors (symbol-function ',symbol))))))
+
+;;;
 ;;; math
 ;;;
 
 (defun lerp (from to amount)
   (* (- from to)
      amount))
+
+(defmacro snap-to-grid (what)
+  `(decf ,what
+         (- (mod (+ ,what 0.1) 0.2) 0.1)))
 
 ;;;
 ;;; color
@@ -41,19 +57,20 @@
         (t (loop for a in l nconc (flatten a :test test)))))
 
 ;;;
-;;; loading-utils
+;;; textures hashing and loading
 ;;;
 
 (defstruct text-texture
-  texture width heigth)
+  id width heigth)
 
 (defparameter *text-hash* (make-hash-table :test #'equal))
 
 (defun clean-text-hash ()
-  (maphash (lambda (key value) 
-             (gl:delete-textures (list (text-texture-texture value))))
-           *text-hash*)
-  (clrhash *text-hash*))
+  (labels ((delete-texture (key value)
+             (declare (ignore key))
+             (gl:delete-textures (list (text-texture-id value)))))
+    (maphash #'delete-texture *text-hash*)
+    (clrhash *text-hash*)))
 
 (defun make-text (string)
   (or (gethash string *text-hash*)
@@ -73,7 +90,7 @@
         (free-surface surface)
         (sdl2-ttf:close-font font)
         (setf (gethash string *text-hash*)
-              (make-text-texture :texture texture
+              (make-text-texture :id texture
                                  :width (/ surface-w 30)
                                  :heigth (/ surface-h 30 -1))))))
 
@@ -81,10 +98,11 @@
 (defparameter *texture-hash* (make-hash-table :test #'equal))
 
 (defun clean-texture-hash ()
-  (maphash (lambda (key value) 
-             (gl:delete-textures (list value)))
-           *texture-hash*)
-  (clrhash *texture-hash*))
+  (labels ((delete-texture (key value)
+             (declare (ignore key))
+             (gl:delete-textures (list value))))
+    (maphash #'delete-texture *texture-hash*)
+    (clrhash *texture-hash*)))
 
 (defun load-texture (file-name &optional (format :rgba)
                                  (filter :linear))
@@ -179,48 +197,20 @@
 
 (defun text (string x y size rotation)
   (let ((text-texture (make-text string)))
-    (with-slots (texture width heigth) text-texture
-      (quad-textured texture x y
+    (with-slots (id width heigth) text-texture
+      (quad-textured id x y
                      rotation (* width size) (* heigth size)))))
 
 (defun text-align (string x y size rotation)
   (let ((text-texture (make-text string)))
-    (with-slots (texture width heigth) text-texture
-      (quad-textured texture (+ x (* width size)) y
+    (with-slots (id width heigth) text-texture
+      (quad-textured id (+ x (* width size)) y
                      rotation (* width size) (* heigth size)))))
 
 
 ;;;
 ;;; window-utils
 ;;;
-
-(defun idler (window)
-  "Every frame routines"
-  
-  (let ((old-time (get-internal-real-time)))
-    #|
-    (errors (nth-value
-    1
-    (ignore-errors ; in-game error messager
-    (main-screen *delta*)))))
-    
-    (when errors
-    (gl:load-identity)
-    (gl:color 1 1 0)
-    (text "VLE ERROR"
-    0 -0.8 0.03 0)
-    (text (write-to-string errors)
-    0 -0.9 0.02 0)) |#
-
-    (main-screen *delta*)
-    
-    (gl:flush)
-    (gl-swap-window window)
-    
-    (setf *delta*
-          (/ (- (get-internal-real-time)
-                old-time)
-             internal-time-units-per-second))))
 
 (defun resize-viewport (width height)
   (gl:viewport 0 0 width height)
@@ -235,28 +225,9 @@
   (defun full-screen (window)
     (multiple-value-bind (some width height)
         (get-current-display-mode 0)
+      (declare (ignore some))
       (set-window-size window width height))
     (set-window-fullscreen
      window
      (setf fullscreen
            (not fullscreen)))))
-
-;;;
-;;; exebutable
-;;;
-
-(defun save ()
-  "Make exebutable"
-  #+sbcl(if (string= (software-type) "Linux")
-            (sb-ext:save-lisp-and-die
-             (concatenate 'string
-                          "_builds/abra-" (software-type))
-             :toplevel #'main :executable t :compression 9)
-            (sb-ext:save-lisp-and-die
-             (concatenate 'string
-                          "_builds/abra-" (software-type) ".exe")
-             :toplevel #'main :executable t :application-type :gui))
-  #+ccl(ccl:save-application
-        (concatenate 'string "_builds/abra-ccl-" (software-type))
-        :toplevel-function #'main
-        :prepend-kernel t))

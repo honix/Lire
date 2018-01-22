@@ -4,14 +4,6 @@
 
 (in-package :lire)
 
-(defun find-heads (node)
-  "Find all tree-heads linked to node"
-  (labels ((find-head-in (node)
-             (if (node-parents node)
-                 (mapcar #'find-head-in (node-parents node))
-                 node)))
-    (remove-duplicates (flatten (find-head-in node)))))
-
 (defun compose-code (node)
   "Make lisp form"
   (with-slots (name parents childs) node
