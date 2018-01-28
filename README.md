@@ -3,6 +3,9 @@
 
 *"Maybe if lisp started today, we would a syntax of lisp look like trees"* -- **Hal Abelson** ([1986 lecture](https://www.youtube.com/watch?v=XYKRVNQ_MqE&feature=youtu.be&t=34m33s))
 
+## Status
+At this time i actively refactoring the system. Points is: moving to glup window system, introducing classes for better reusability, pixel as position unit. Update will pushed in some weeks.
+
 ## In short
 Lire is a lisp expressions visual editor, this allows you to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree). It runs on top of Common Lisp.
 
