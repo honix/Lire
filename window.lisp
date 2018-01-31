@@ -106,10 +106,12 @@
       (mouse active-module button state x y))))
 
 (defmethod glut:mouse-wheel ((w lire-window) button pressed x y)
-  ;; Really does nothing. GLUT:MOUSE catching wheel events.
+  ;; This method works on windows. Linux sends all mouse events to GLUT:MOUSE
   (with-simple-restart (mouse-whell-restart "Mouse-whell")
     (with-slots (active-module) w
-      (mouse-whell active-module y))))
+      (case pressed
+        ((:up   :wheel-up)   (mouse-whell active-module 1))
+        ((:down :wheel-down) (mouse-whell active-module -1))))))
 
 (defmethod glut:special ((w lire-window) special-key x y)
   ;; Catches :KEY-F1 :KEY-LEFT-SHIFT :KEY-HOME :KEY-LEFT etc..

@@ -239,8 +239,7 @@
       (:key-home
        (setf camera-x 0
              camera-y 0
-             zoom     1
-             zoom-to  1)
+             zoom     1)
        (repose canvas))
       (:key-left
        (setf key-move t)
@@ -485,7 +484,7 @@
 (defmethod delete-nodes ((canvas canvas) nodes-to-delete)
   (with-slots (nodes selected-nodes) canvas
     (mapc #'destroy-connections selected-nodes)
-    (setf nodes (set-difference nodesnodes-to-delete)
+    (setf nodes (set-difference nodes nodes-to-delete)
           selected-nodes ())
     (repose canvas)))
 
