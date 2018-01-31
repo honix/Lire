@@ -6,24 +6,28 @@
 
 
 (ql:quickload '(:swank :bordeaux-threads
-                :cl-opengl :sdl2
-                :sdl2-ttf :sdl2-image))
+                :cl-opengl :cl-glut
+                :sdl2-ttf))
 
 (load (merge-pathnames (pathname "contrib/swank-fuzzy.lisp")
                        swank-loader:*source-directory*))
 
 
 (defpackage :lire
-  (:use :cl :sdl2))
+  (:use :cl))
 
 (in-package :lire)
 
-(defparameter *window* nil)
+(dolist (file '("utils.lisp"
+                "shapes.lisp"
+                "text.lisp"
+                "node.lisp"
+                "evaluation.lisp"
+                "canvas.lisp"
+                "window.lisp"))
+  (load file))
 
-(dolist (module '("utils.lisp"
-                  "node.lisp"
-                  "evaluation.lisp"
-                  "window.lisp"))
-  (load module))
+(defparameter *lire* (make-instance 'lire-window))
 
-(bordeaux-threads:make-thread #'run-lire)
+(bordeaux-threads:make-thread
+ (lambda () (glut:display-window *lire*)))

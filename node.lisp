@@ -4,48 +4,56 @@
 
 (in-package :lire)
 
-(defparameter *node-height* 0.06)
-(defparameter *node-width-char* 0.021) ;?
-(defparameter *node-width-bumps* 0.05)
+;; (defparameter *node-height* 0.06)
+;; (defparameter *node-width-char* 0.021) ;?
+;; (defparameter *node-width-bumps* 0.05)
 
-(defstruct node
-  name
-  x y
-  width
-  color
-  message
-  error
-  parents
-  childs)
+(defparameter *node-height* 15)
+(defparameter *node-text-height* (* *node-height* 0.7))
+(defparameter *node-width-char* (* *node-text-height* 0.54)) ;?
+(defparameter *node-width-bumps* 10)
 
-(defun node-update (node)
-  (setf (node-width node)
-        (if (stringp (node-name node))
-            (+ (* (length (node-name node)) *node-width-char*)
-               *node-width-bumps*)
-            *node-height*)
-        (node-color node)
-        (if (ignore-errors (function-symbol-p
-                            (read-from-string (node-name node))))
-            (hsv-to-rgb (mod (sxhash (node-name node)) 360)
-                        0.75 0.55)
-            (hsv-to-rgb 0 0 0.3)))
+(defclass node ()
+  ((name :initarg :name)
+   (x :initarg :x) (y :initarg :y)
+   (width   :initform 0)
+   (color   :initform nil)
+   (message :initform nil)
+   (error   :initform nil)
+   (parents :initform ())
+   (childs  :initform ())))
+
+(defun create-node (&key name x y)
+  (let ((node (make-instance 'node
+                             :name (cond ((string= name " ") :list)
+                                         ((string= name ".") :dot)
+                                         (t name))
+                             :x x :y y)))
+    (node-update node)
+    node))
+
+(defmethod node-update ((node node))
+  (with-slots (width name color) node
+    (setf width
+          (if (stringp name)
+              (+ (* (length name) *node-width-char*)
+                 *node-width-bumps*)
+              *node-height*)
+          color
+          (if (ignore-errors (function-symbol-p
+                              (read-from-string name)))
+              (hsv-to-rgb (mod (sxhash name) 360)
+                          0.75 0.55)
+              (hsv-to-rgb 0 0 0.3))))
   node)
 
-(defun update-tree (node)
+(defmethod update-tree ((node node))
   (with-slots (childs) node
     (node-update node)
     (when childs
       (mapc #'update-tree childs))))
 
-(defun create-node (&key name x y)
-  (let ((node (make-node :name (cond ((string= name " ") :list)
-                                     ((string= name ".") :dot)
-                                     (t name))
-                         :x x :y y)))
-    (node-update node)))
-
-(defun node-in-rect (node x1 y1 x2 y2)
+(defmethod node-in-rect ((node node) x1 y1 x2 y2)
   (let ((x1 (min x1 x2))
         (y1 (min y1 y2))
         (x2 (max x1 x2))
@@ -55,80 +63,47 @@
        (< x1 x x2)
        (< y1 y y2)))))
 
-(defun node-at-screen (node)
-  (with-slots (zoom
-               screen-width screen-height
-               camera-x camera-y)
-      *window*
-    (let ((asp (/ screen-width screen-height)))
-      (node-in-rect node
-                    (- camera-x (* (/ zoom) asp) 1)
-                    (- camera-y (/ zoom) 1)
-                    (+ camera-x (* (/ zoom) asp) 1)
-                    (+ camera-y (/ zoom) 1)))))
-
-(defun repose ()
-  (with-slots (nodes nodes-at-screen) *window*
-    (setf nodes-at-screen
-          (remove-if-not #'node-at-screen nodes))))
 
 ;;;
 ;;  Node drawing functions
 ;;;
 
-(defun draw-wires (node)
-  (with-slots (time) *window*
+(defmethod draw-wires ((node node))
+  (let ((time (get-time)))
     (with-slots (x y color childs) node
       (let* ((pulse-in  (/ (mod time 6) 6))
              (pulse-out (min 1 (* pulse-in 1.3))))
         (dolist (child childs)
-          (apply #'gl:color color)
-          (simple-line x y (node-x child) (node-y child))
-          (gl:color 1 1 1 0.5)
-          (simple-line
-           (+ (node-x child) (* (- x (node-x child)) pulse-in))
-           (+ (node-y child) (* (- y (node-y child)) pulse-in))
-           (+ (node-x child) (* (- x (node-x child)) pulse-out))
-           (+ (node-y child) (* (- y (node-y child)) pulse-out))))))))
+          (with-slots ((cx x) (cy y)) child
+            (apply #'gl:color color)
+            (simple-line x y cx cy)
+            (gl:color 1 1 1 0.5)
+            (simple-line
+             (+ cx (* (- x cx) pulse-in))
+             (+ cy (* (- y cy) pulse-in))
+             (+ cx (* (- x cx) pulse-out))
+             (+ cy (* (- y cy) pulse-out)))))))))
 
-(defun draw-node (node)
-  (with-slots (zoom) *window*
-    (with-slots (name x y width color message error parents) node
-      (when (stringp name)
-        (apply #'gl:color color)
-        (quad-shape x y 0 width *node-height*))
-      (gl:color 1 1 1)
-      (when (> zoom 0.3)
-        (text (if (stringp name) name
-                  (case name (:list "(●)") (:dot "●") (t "?")))
-              x y 0.04 0)
-        (when message
-          (if error
-              (gl:color 1 1 0 0.5)
-              (gl:color 0 1 1))
-          (text message x (+ y 0.1) 0.04 0))))))
-
-(defun draw-selection (node &optional first)
-  (with-slots (mouse-left) *window*
-    (with-slots (x y width) node
-      (let ((alpha (if mouse-left 0.5 1)))
-        (if first
-            (gl:color 1 1 0 alpha)
-            (gl:color 0 1 1 alpha)))
-      (let ((x x) (y y))
-        (quad-lines (snap-to-grid x)
-                    (snap-to-grid y) 0
-                    (+ width         0.02)
-                    (+ *node-height* 0.02))))))
+(defmethod draw-selection ((node node) &optional first)
+  (with-slots (x y width) node
+    (let ((alpha 1))
+      (if first
+          (gl:color 1 1 0 alpha)
+          (gl:color 0 1 1 alpha)))
+    (let ((x x) (y y))
+      (quad-lines (snap-to-grid x)
+                  (snap-to-grid y) 0
+                  (+ width         3)
+                  (+ *node-height* 3)))))
 
 (let ((last-node nil)
       (last-value " "))
-  (defun args-list (node)
+  (defmethod args-list ((node node))
     (if (equal node last-node)
         last-value
         (setf last-node node
               last-value 
-              (let* ((name (node-name node))
+              (let* ((name (slot-value node 'name))
                      (args (e-eval
                             `(or
                               #+sbcl(ignore-errors
@@ -142,141 +117,86 @@
                               " "))))
                 (princ-to-string args))))))
 
-(defun draw-args-list (node)
+(defmethod draw-args-list ((node node))
   (with-slots (x y childs) node
     (gl:color 1 1 1 0.5)
-    (text (args-list node) x (- y 0.15) 0.04 0)
+    (text (args-list node) x (+ y (* *node-height* 2))
+          (* *node-text-height* 0.7) 0)
                                         ; childs numbering
     (let ((count 0))
-      (dolist (child childs) 
-        (text ;(princ-to-string (nth count args))
-         (princ-to-string count)
-         (node-x child) (+ (node-y child) 0.10) 0.03 0)
-        (incf count)))))
+      (dolist (child childs)
+        (with-slots ((cx x) (cy y)) child
+          (text (princ-to-string count)
+                cx (- cy (* *node-height* 2))
+                (* *node-text-height* 0.7) 0)
+          (incf count))))))
 
 ;;;
 ;;  Node utils
 ;;;
 
-(defun snap-node-to-grid (node)
-  (snap-to-grid (node-x node))
-  (snap-to-grid (node-y node)))
+(defmethod snap-node-to-grid ((node node))
+  (with-slots (x y) node
+    (snap-to-grid x)
+    (snap-to-grid y)))
 
-(defun point-at-node-p (node point-x point-y)
+(defmethod point-at-node-p ((node node) point-x point-y)
   (with-slots (x y width) node
     (let ((w width)
           (h *node-height*))
       (and (< (- x w) point-x (+ x w))
            (< (- y h) point-y (+ y h))))))
 
-(defun position-at-node-p (node)
-  (with-slots (position-x position-y) *window*
-    (point-at-node-p node position-x position-y)))
 
-(defun mouse-at-node-p (node)
-  (with-slots (mouse-x mouse-y) *window*
-    (point-at-node-p node mouse-x mouse-y)))
-
-(defun sort-childs (node)
+(defmethod sort-childs ((node node))
   "Sort childs for args mapping (func 0 1 2 3).
 Horizontal (from left) is main axis, but if args-nodes 
 horizontaly equal, sort it by vertical (from upper)"
   (with-slots (childs) node
     (setf childs
-          (sort childs (lambda (a b)
-                         (if (< (- (node-x a) 0.01) 
-                                (node-x b) 
-                                (+ (node-x a) 0.01))
-                             (> (node-y a) (node-y b))
-                             (< (node-x a) (node-x b))))))))
+          (sort childs
+                (lambda (a b)
+                  (with-slots ((ax x) (ay y)) a
+                    (with-slots ((bx x) (by y)) b
+                      (if (< (- ax 0.01) bx (+ ax 0.01))
+                          (> ay by)
+                          (< ax bx)))))))))
 
-(defun find-heads (node)
+(defmethod find-heads ((node node))
   "Find all tree-heads linked to node"
   (labels ((find-head-in (node)
-             (if (node-parents node)
-                 (mapcar #'find-head-in (node-parents node))
-                 node)))
+             (with-slots (parents) node
+               (if parents
+                   (mapcar #'find-head-in parents)
+                   node))))
     (remove-duplicates (flatten (find-head-in node)))))
 
-(defun flip-connection (parent child)
-  (if (find child (node-childs parent))
-      (setf (node-childs parent) (remove child (node-childs parent))
-            (node-parents child) (remove parent (node-parents child)))
-      (when (not (eq parent child))
-        (pushnew child
-                 (node-childs parent))
-        (pushnew parent
-                 (node-parents child))
-        (when (node-message child)
-          (setf (node-message child) nil))
-        (dolist (head (find-heads child))
-          (when (node-message head)
-            (setf (node-message head) "?")))
-        (sort-childs parent))))
+(defmethod flip-connection ((parent node) (child node))
+  (with-slots ((parent-childs childs)) parent
+    (with-slots ((child-parents parents)) child
+      (if (find child parent-childs)
+          ;; (setf parent-childs (remove child parent-childs)
+          ;;       child-parents (remove parent child-parents))
+          (progn
+            (delete child parent-childs)
+            (delete parent child-parents))
+          (when (not (eq parent child))
+            (pushnew child parent-childs)
+            (pushnew parent child-parents)
+            (with-slots (message) child
+              (when message (setf message nil)))
+            (dolist (head (find-heads child))
+              (with-slots (message) head
+                (when message (setf message "?")))
+              (sort-childs parent)))))))
 
-(defun connect-selected ()
-  (with-slots (selected-nodes) *window*
-    (let ((parent (car selected-nodes))
-          (others (cdr selected-nodes)))
-      (mapc (lambda (node) (flip-connection parent node))
-            others))))
-
-(defun destroy-connections (node)
-  (dolist (child (node-childs node))
-    (setf (node-parents child)
-          (remove node (node-parents child))))
-  (dolist (parent (node-parents node))
-    (setf (node-childs parent)
-          (remove node (node-childs parent))))
-  (setf (node-childs  node) ())
-  (setf (node-parents node) ()))
-
-(defun delete-nodes (nodes-to-delete)
-  (with-slots (nodes selected-nodes) *window*
-    (mapc #'destroy-connections
-          selected-nodes)
-    (setf nodes
-          (set-difference nodes
-                          nodes-to-delete)
-          selected-nodes ())
-    (repose)))
-
-(defun insert-new-node ()
-  (with-slots (nodes
-               nodes-at-screen
-               selected-nodes
-               new-node-name
-               position-x position-y)
-      *window*
-    (if (string= new-node-name "")
-                                        ; hit 'enter' without symbol -> jump to last created node
-        (let ((node (car nodes)))
-          (when node
-            (setf selected-nodes (list (car nodes)))
-            (setf position-y (- (node-y node) 0.2))
-            (setf position-x (node-x node))))
-                                        ; hit 'enter' with some symbol
-        (let ((under (find-if #'position-at-node-p nodes-at-screen)))
-          (if under
-                                        ; new node overlaps old one -> replace it name!
-              (progn
-                (setf (node-name under)
-                      (cond ((string= new-node-name " ") :list)
-                            ((string= new-node-name ".") :dot)
-                            (t new-node-name)))
-                (node-update under))
-                                        ; new node
-              (let ((new-node (create-node :name new-node-name
-                                           :x position-x
-                                           :y position-y)))
-                (push new-node nodes)
-
-                (if selected-nodes
-                    (progn
-                      (flip-connection (car selected-nodes) new-node)
-                      (incf position-x 0.2))
-                    (progn
-                      (pushnew new-node selected-nodes)
-                      (incf position-y -0.2)))))
-          (setf new-node-name "")
-          (repose)))))
+(defmethod destroy-connections ((node node))
+  (with-slots (childs parents) node
+    (dolist (child childs)
+      (with-slots (parents) child
+        (setf parents (delete node parents))))
+    (dolist (parent parents)
+      (with-slots (childs) parent
+        (setf childs (delete node childs))))
+    (setf childs  ()
+          parents ())))

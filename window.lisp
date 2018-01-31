@@ -4,331 +4,143 @@
 
 (in-package :lire)
 
-(defstruct window
-  (time            0.0)
-  (delta           0.0)
-  (second-time     0.0)
-  (temp-fps          0)
-  (fps               0)
-  
-  (screen-width    800) (screen-height 600)
-  
-  (completions       nil)
-  (completions-select -1)
-  
-  (position-x        0) (position-y      0)
-  (camera-x          0) (camera-y        0)
-  (real-camera-x     0) (real-camera-y   0)
-  (zoom            1.0) (real-zoom     0.0)
+(defclass lire-window (glut:window)
+  ((width       :initform 800)
+   (height      :initform 600)
+   (mouse-x     :initform 0)
+   (mouse-y     :initform 0)
+   (shift       :initform nil)
+   (mouse-left  :initform nil)
+   (mouse-right :initform nil)
 
-  (new-node-name    "")
-  (nodes            ())
-  (connecting-nodes ())
-  (nodes-at-screen  ())
-  (selected-nodes   ())
-
-  (selector        nil)
-  (selector-x        0) (selector-y      0)
-
-  (mouse-x           0) (mouse-y         0)
-  (shift           nil)
-  (key-move        nil)
-  (mouse-left      nil) (mouse-right   nil))
-
-
-(defparameter *window* (make-window))
-
-;;;
-;;  Symbol finder
-;;;
-
-(defun completion (string)
-  (map 'list
-       (lambda (n) (write-to-string (swank::fuzzy-matching.symbol n)))
-       (let ((comps (sort
-                     (swank::fuzzy-find-matching-symbols
-                      string *package*)
-                     #'> :key #'swank::fuzzy-matching.score)))
-         (subseq comps 0 (min 9 (length comps))))))
-
-(defun set-mouse-position ()
-  (with-slots (mouse-x mouse-y position-x position-y) *window*
-    (setf mouse-x position-x
-          mouse-y position-y)))
-
-;;;
-;;  Every-frame procedures
-;;;
-
-(defun timing (delta)
-  (with-slots (time second-time fps temp-fps) *window*
-    (incf time delta)
-    (if (< second-time 1.0)
-        (progn
-          (incf second-time delta)
-          (incf temp-fps))
-        (progn
-          (setf second-time 0.0
-                fps temp-fps
-                temp-fps 0)))))
-
-(defun input-update ()
-  (with-slots (key-move
-               selector
-               mouse-left mouse-right
-               selected-nodes
-               mouse-x mouse-y
-               selector-x selector-y
-               position-x position-y)
-      *window*
-    (when key-move
-      (set-mouse-position))
-    
-    (when (and mouse-left (not selector))
-      (dolist (node selected-nodes) 
-        (incf (node-x node) (- mouse-x selector-x))
-        (incf (node-y node) (- mouse-y selector-y)))
-      (setf selector-x mouse-x
-            selector-y mouse-y))
-
-    (when (not (or mouse-right key-move))
-      (snap-to-grid position-x)
-      (snap-to-grid position-y))))
-
-(defun draw-lire ()
-  (with-slots (selector
-               selected-nodes
-               selector-x selector-y
-               mouse-x mouse-y
-               position-x position-y
-               zoom real-zoom
-               camera-x real-camera-x
-               camera-y real-camera-y
-               time nodes
-               nodes-at-screen
-               new-node-name
-               completions-select
-               completions
-               fps)
-      *window*
-
-    (gl:clear :color-buffer-bit)
-    
-    (gl:load-identity)
-    (gl:color 0.1 0.1 0.1)
-    (quad-shape 0 0 0 10 1)
-
-    (gl:scale (incf real-zoom (lerp zoom real-zoom 0.3))
-              real-zoom 0)
-
-    (let ((slower 0.5))
-      (gl:translate (- (incf real-camera-x
-                             (lerp camera-x
-                                   real-camera-x slower)))
-                    (- (incf real-camera-y
-                             (lerp camera-y
-                                   real-camera-y slower)))
-                    0))
-
-                                        ; cross
-    (let ((flicker (+ (abs (* (sin time) 0.6)) 0.2)))
-      (gl:line-width 1)
-      (gl:color 0 flicker flicker)
-      (simple-cross position-x position-y 0.1))
-
-                                        ; nodes
-    (gl:line-width (floor (max (* zoom 10) 1)))
-    (mapc #'draw-wires nodes)
-    
-    (gl:line-width 1)
-    (mapc #'draw-node nodes-at-screen)
-    
-    (when selected-nodes
-      (draw-selection (car selected-nodes) t)
-      (mapc #'draw-selection (cdr selected-nodes)))
-
-                                        ; arguments tip
-    (let ((node (find-if #'mouse-at-node-p nodes-at-screen)))
-      (when node
-        (draw-args-list node)))
-
-                                        ; selector
-    (when selector
-      (let* ((x (min selector-x mouse-x))
-             (y (min selector-y mouse-y))
-             (w (- (max selector-x mouse-x) x))
-             (h (- (max selector-y mouse-y) y)))
-        (gl:color 0.5 0.7 1 0.3)
-        (aligned-quad-shape x y 0 w h)
-        (gl:color 0.5 0.7 1)
-        (aligned-quad-lines x y 0 w h)))
-
-                                        ; new node
-    (when (not (string= new-node-name ""))
-      (let ((node (create-node :name new-node-name
-                               :x position-x
-                               :y position-y)))
-        (setf (node-color node) (list 0.2 0.2 0.2))
-        (draw-node node)))
-    
-                                        ; completion list
-    (let ((count -1)
-          (y (- position-y 0.05)))
-      (dolist (comp completions)
-        (if (= completions-select (incf count))
-            (gl:color 0 1 1 1.0)
-            (gl:color 1 1 1 0.1))
-        (text comp position-x (decf y 0.050) 0.025 0)))
-    
-                                        ; gui
-    (gl:load-identity)
-    (gl:color 1 1 1 0.5)
-    (text (format nil "fps: ~A" fps) -0.5 -0.9 0.03 0)
-    (text (princ-to-string *package*) 0.5 -0.9 0.03 0)
-    (text "|" 0 -0.9 0.03 (* time 12))
-    (text "|" 0 -0.9 0.03 (* time 42))))
-
-
-(defun main-screen (delta)
-  (timing delta)
-  (input-update)
-  (draw-lire))
-
-;;;
-;;  Input procedures
-;;;
-
-(let ((last-click-time 0.0))
-  (defun press-mouse-left ()
-    (with-slots (nodes-at-screen
-                 mouse-left
-                 mouse-x mouse-y
-                 selected-nodes
-                 shift
-                 selector
-                 selector-x selector-y)
-        *window*
-      (if (< (- (get-internal-real-time) last-click-time) 300)
-          (progn                          ; double-click
-            (let ((select (find-if #'mouse-at-node-p nodes-at-screen)))
-              (when select (eval-tree select))))
-          (progn                          ; single-click
-            (setf mouse-left t)
-            (let ((select (find-if #'mouse-at-node-p nodes-at-screen)))
-              (if select
-                  (progn
-                    (if (find select selected-nodes)
-                                        ; make parent first
-                        (setf selected-nodes
-                              (cons select (remove select
-                                                   selected-nodes)))
-                        (if shift
-                            (setf selected-nodes
-                                  (cons select selected-nodes))
-                            (setf selected-nodes (list select)))))
-                  (setf selector t)))
-            (setf selector-x mouse-x
-                  selector-y mouse-y)))
-      (setf last-click-time (get-internal-real-time)))))
-
-(defun release-mouse-left ()
-  (with-slots (nodes-at-screen
-               mouse-left shift
-               mouse-x mouse-y
-               selected-nodes
-               selector
-               selector-x selector-y
-               position-x position-y)
-      *window*
-    (setf mouse-left nil)
-    (dolist (selected selected-nodes)
-      (snap-node-to-grid selected)
-      (with-slots (x y parents) selected
-        (mapc #'sort-childs parents)))
-    (when selector
-      (setf selector nil)
-      (let ((selected (remove-if-not
-                       (lambda (node)
-                         (node-in-rect node
-                                       selector-x selector-y
-                                       mouse-x mouse-y))
-                       nodes-at-screen)))
-        (if selected
-            (setf selected-nodes (sort
-                                    (if shift
-                                        (remove-duplicates 
-                                         (append selected
-                                                 selected-nodes))
-                                        selected)
-                                    #'> :key #'node-y))
-            (setf selected-nodes ()))))
-    (setf position-x mouse-x
-          position-y mouse-y)
-    (snap-to-grid position-x)
-    (snap-to-grid position-y)))
-
-(defun press-mouse-right ()
-  (with-slots (mouse-right
-               mouse-x mouse-y
-               nodes-at-screen
-               connecting-nodes
-               selected-nodes
-               nodes)
-      *window*
-    (setf mouse-right t)
-    (let ((select (find-if #'mouse-at-node-p nodes-at-screen)))
-      (when select
-        (setf selected-nodes (if (not (find select selected-nodes))
-                                   (list select)
-                                   selected-nodes))
-        (setf connecting-nodes selected-nodes)
-        (let ((dot (create-node :name "." :x mouse-x :y mouse-y)))
-          (push dot nodes)
-          (push dot selected-nodes)
-          (repose))
-        (connect-selected)))))
-
-(defun release-mouse-right ()
-  (with-slots (mouse-right
-               nodes-at-screen
-               connecting-nodes
-               selected-nodes
-               nodes)
-      *window*
-    (setf mouse-right nil)
-    (let ((select (find-if #'mouse-at-node-p (rest nodes-at-screen))))
-      (when select
-        (when (not (find select connecting-nodes))
-          (setf selected-nodes
-                (cons select selected-nodes))
-          (connect-selected))
-                                        ;(delete-nodes (list (car nodes)))) ???
-        (destroy-connections (car nodes))
-        (setf nodes (remove (car nodes) nodes))
-        (repose)))
-    (when connecting-nodes
-      (snap-node-to-grid (car nodes))
-      (setf selected-nodes ())
-      (setf connecting-nodes ()))))
+   (canvas        :initform nil)
+   (active-module :initform nil))
+  (:default-initargs :width 800 :height 600
+                     :pos-x 100 :pos-y 100
+                     :mode '(:double :rgb :stencil :multisample)
+                     :tick-interval 16
+                     :title "Lire"))
 
 ;;;
 ;;  Window initialization and input binding
 ;;;
 
-(defun idler (window)
-  (with-slots (delta) *window*
-    (let ((old-time (get-internal-real-time)))
-      (main-screen delta)
+(defmethod initialize-instance :before ((w lire-window) &rest rest)
+  (declare (ignore rest))
+  (with-slots (canvas active-module) w
+    (setf canvas (make-instance 'canvas :window w)
+          active-module canvas)))
 
-      (gl:flush)
-      (gl-swap-window window)
+(defmethod glut:display-window :before ((w lire-window))
+  (sdl2-ttf:init)
+  (clean-text-hash)
+  (gl:clear-color 0.1 0.1 0.1 0)
+  (gl:enable :texture-2d :blend)
+  (gl:blend-func :src-alpha :one-minus-src-alpha))
 
-      (setf delta
-            (/ (- (get-internal-real-time)
-                  old-time)
-               internal-time-units-per-second)))))
+(defmethod glut:reshape ((w lire-window) width height)
+  (setf (slot-value w 'width) width
+        (slot-value w 'height) height)
+  (gl:viewport 0 0 width height)
+  (gl:matrix-mode :projection)
+  (gl:load-identity)
+  (let ((hwidth  (/ width 2))
+        (hheight (/ height 2)))
+    (gl:ortho (- hwidth)  (+ hwidth)
+              (+ hheight) (- hheight) 0 1)
+    (gl:translate (- hwidth) (- hheight) -1))
+  (gl:matrix-mode :modelview))
 
-(defun run-lire ()
+(defmethod glut:close ((w lire-window))
+  (sdl2-ttf:quit))
+
+
+(defmethod glut:display ((w lire-window))
+  (with-simple-restart (display-restart "Display")
+    (gl:clear :color-buffer :stencil-buffer-bit)
+    
+    (process (slot-value w 'canvas))
+    ;; (for module in modules do (draw module))
+    
+    (glut:swap-buffers)))
+  
+(defmethod glut:idle ((w lire-window))
+  ;; Updates
+  ;(glut:post-redisplay)
+  )
+
+(defmethod glut:tick ((w lire-window))
+  (with-simple-restart (tick-restart "Tick")
+    (glut:post-redisplay)))
+
+(defmethod mouse-motion ((w lire-window) x y)
+  (with-slots (mouse-x mouse-y active-module) w
+    (let ((dx (- mouse-x x))
+          (dy (- mouse-y y)))
+      (setf mouse-x x mouse-y y)
+      (motion active-module x y dx dy))))
+
+(defmethod glut:motion ((w lire-window) x y)
+  (with-simple-restart (motion-restart "Motion")
+    (mouse-motion w x y)))
+
+(defmethod glut:passive-motion ((w lire-window) x y)
+  (with-simple-restart (passive-motion-restart "Passive-motion")
+    (mouse-motion w x y)))
+
+(defmethod glut:mouse ((w lire-window) button state x y)
+  (with-simple-restart (mouse-restart "Mouse")
+    (with-slots (mouse-x mouse-y mouse-left mouse-right active-module) w
+      (setf mouse-x x mouse-y y)
+      (case button
+        (:left-button
+         (setf mouse-left (eq state :down)))
+        (:middle-button
+         nil)
+        (:right-button
+         (setf mouse-right (eq state :down)))
+        (:wheel-up
+         (mouse-whell active-module 1))
+        (:wheel-down
+         (mouse-whell active-module -1)))
+      (mouse active-module button state x y))))
+
+(defmethod glut:mouse-wheel ((w lire-window) button pressed x y)
+  ;; Really does nothing. GLUT:MOUSE catching wheel events.
+  (with-simple-restart (mouse-whell-restart "Mouse-whell")
+    (with-slots (active-module) w
+      (mouse-whell active-module y))))
+
+(defmethod glut:special ((w lire-window) special-key x y)
+  ;; Catches :KEY-F1 :KEY-LEFT-SHIFT :KEY-HOME :KEY-LEFT etc..
+  (with-simple-restart (special-key-restart "Special-key")
+    (with-slots (active-module shift) w
+      (case special-key
+        ((:key-left-shift :key-right-shift)
+         (setf shift t)))
+      (special-key active-module special-key))))
+
+(defmethod glut:special-up ((w lire-window) special-key x y)
+  (with-simple-restart (special-key-up-restart "Special-key-up")
+    (with-slots (active-module shift) w
+      (case special-key
+        ((:key-left-shift :key-right-shift)
+         (setf shift nil))))))
+
+(defmethod glut:keyboard ((w lire-window) key x y)
+  ;; Catches alphanumeric keys + #\Return #\Backspace #\Tab and etc..
+  (with-simple-restart (keyboard-restart "Keyboard")
+    (with-slots (active-module) w
+      (if (graphic-char-p key)                  ; (alphanumericp key)
+          (keyboard active-module key)
+          (special-key active-module key)))))
+
+(defmethod glut:keyboard-up ((w lire-window) key x y)
+  (with-simple-restart (keyboard-up-restart "Keyboard-up")))
+
+
+
+(defun run-lire-old ()
   (with-slots (nodes
                connecting-nodes
                completions
@@ -344,21 +156,10 @@
                mouse-left mouse-right)
       *window*
     (with-init (:everything)
-      (sdl2-ttf:init)
-      (sdl2:gl-set-attr :multisamplebuffers 1) 
-      (sdl2:gl-set-attr :multisamplesamples 2) 
       (with-window (lire-window :title "Lire"
-                                :w screen-width
-                                :h screen-height
+                                :w screen-width :h screen-height
                                 :flags '(:shown :resizable :opengl))
         (with-gl-context (gl-context lire-window)
-          (gl-make-current lire-window gl-context)
-          (gl:enable :texture-2d :blend)
-          (gl:blend-func :src-alpha :one-minus-src-alpha)
-          (resize-viewport screen-width screen-height)
-
-          (repose)
-
           (with-event-loop (:method :poll)
             (:textinput   (:text text)
                           (ignore-errors 
@@ -494,15 +295,16 @@
             (:idle        ()
                           (idler lire-window))
             (:windowevent (:event event :data1 width :data2 height)
-                          (when (=
-                                 event
-                                 sdl2-ffi:+sdl-windowevent-size-changed+)
-                            (setf screen-width width
-                                  screen-height height)
-                            (resize-viewport width height)
-                            (repose)))
+                          ;; (when (=
+                          ;;        event
+                          ;;        sdl2-ffi:+sdl-windowevent-size-changed+)
+                          ;;   (setf screen-width width
+                          ;;         screen-height height)
+                          ;;   (resize-viewport width height)
+                          ;;   (e))
+                          )
             (:quit        ()
-                          (sdl2-ttf:quit)
+                          ;; (sdl2-ttf:quit)
                           (clean-text-hash)
                           (clean-texture-hash)
                           t)))))))

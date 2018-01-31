@@ -4,7 +4,7 @@
 
 (in-package :lire)
 
-(defun compose-code (node)
+(defmethod compose-code ((node node))
   "Make lisp form"
   (with-slots (name parents childs) node
     (if (stringp name)
@@ -30,8 +30,8 @@
                  ,@(mapcar #'compose-code
                            (sort-childs node)))))))))
 
-(defun eval-node (node)
-  (with-slots (message error) node
+(defmethod eval-node ((node node))
+  (with-slots (message error name) node
     (setf message "...")
     (let* ((cod (compose-code node))
            (eva (multiple-value-list
@@ -45,19 +45,19 @@
           (progn
             (setf error nil)
             (setf message
-                  (write-to-string (if (eq (node-name node) :dot)
+                  (write-to-string (if (eq name :dot)
                                        cod
                                        res)
                                    :length 16)))))))
 
-(defun eval-node-threaded (node)
+(defmethod eval-node-threaded ((node node))
   (bordeaux-threads:make-thread (lambda () (eval-node node))))
 
-(defun eval-tree (node)
-  (let ((heads (if (listp node)
+(defun eval-tree (nodes)
+  (let ((heads (if (listp nodes)
                    (remove-duplicates
-                    (flatten (mapcar #'find-heads node)))
-                   (find-heads node))))
+                    (flatten (mapcar #'find-heads nodes)))
+                   (find-heads nodes))))
     (mapc #'eval-node-threaded heads)
     (mapc #'update-tree heads)))
 
