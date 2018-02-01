@@ -237,11 +237,11 @@
                    (lambda (node) (pointer-at-node-p canvas node))
                    (rest nodes-at-screen))))
       (when select
-        (when (not (find select connecting-nodes))
+        (when (and (not (find select connecting-nodes)))
           (setf selected-nodes
                 (cons select selected-nodes))
           (connect-selected canvas))
-        ;; (delete-nodes (list (car nodes)))) ???
+        ;; remove dot node
         (destroy-connections (car nodes))
         (setf nodes (remove (car nodes) nodes))
         (repose canvas)))

@@ -60,20 +60,19 @@
 ;;;
 
 (defmethod draw-wires ((node node))
-  (let ((time (get-time)))
-    (with-slots (x y color childs) node
-      (let* ((pulse-in  (/ (mod time 6) 6))
-             (pulse-out (min 1 (* pulse-in 1.3))))
-        (dolist (child childs)
-          (with-slots ((cx x) (cy y)) child
-            (apply #'gl:color color)
-            (simple-line x y cx cy)
-            (gl:color 1 1 1 0.5)
-            (simple-line
-             (+ cx (* (- x cx) pulse-in))
-             (+ cy (* (- y cy) pulse-in))
-             (+ cx (* (- x cx) pulse-out))
-             (+ cy (* (- y cy) pulse-out)))))))))
+  (with-slots (x y color childs) node
+    (dolist (child childs)
+      (with-slots ((cx x) (cy y)) child
+        (apply #'gl:color color)
+        (simple-line x y cx cy)
+        (gl:color 1 1 1 0.5)
+        (let ((pulse-in  0.5)
+              (pulse-out 0))
+          (simple-line
+           (+ cx (* (- x cx) pulse-in))
+           (+ cy (* (- y cy) pulse-in))
+           (+ cx (* (- x cx) pulse-out))
+           (+ cy (* (- y cy) pulse-out))))))))
 
 (defmethod draw-selection ((node node) &optional first)
   (with-slots (x y width) node
@@ -162,6 +161,11 @@ horizontaly equal, sort it by vertical (from upper)"
                    node))))
     (remove-duplicates (flatten (find-head-in node)))))
 
+(defmethod send-message-to-heads ((node node) message)
+  (dolist (head (find-heads node))
+    (with-slots (message) head
+      (when message (setf message "?")))))
+
 (defmethod flip-connection ((parent node) (child node))
   (with-slots ((parent-childs childs)) parent
     (with-slots ((child-parents parents)) child
@@ -174,10 +178,12 @@ horizontaly equal, sort it by vertical (from upper)"
             (pushnew parent child-parents)
             (with-slots (message) child
               (when message (setf message nil)))
-            (dolist (head (find-heads child))
-              (with-slots (message) head
-                (when message (setf message "?")))
-              (sort-childs parent)))))))
+            (handler-case
+                (send-message-to-heads child "?")
+              (condition () ; infinity structure catch
+                (pop parent-childs)
+                (pop child-parents)))
+            (sort-childs parent))))))
 
 (defmethod destroy-connections ((node node))
   (with-slots (childs parents) node
