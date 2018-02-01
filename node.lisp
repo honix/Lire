@@ -4,15 +4,6 @@
 
 (in-package :lire)
 
-;; (defparameter *node-height* 0.06)
-;; (defparameter *node-width-char* 0.021) ;?
-;; (defparameter *node-width-bumps* 0.05)
-
-(defparameter *node-height* 15)
-(defparameter *node-text-height* (* *node-height* 0.7))
-(defparameter *node-width-char* (* *node-text-height* 0.54)) ;?
-(defparameter *node-width-bumps* 10)
-
 (defclass node ()
   ((name :initarg :name)
    (x :initarg :x) (y :initarg :y)
@@ -22,15 +13,6 @@
    (error   :initform nil)
    (parents :initform ())
    (childs  :initform ())))
-
-(defun create-node (&key name x y)
-  (let ((node (make-instance 'node
-                             :name (cond ((string= name " ") :list)
-                                         ((string= name ".") :dot)
-                                         (t name))
-                             :x x :y y)))
-    (node-update node)
-    node))
 
 (defmethod node-update ((node node))
   (with-slots (width name color) node
@@ -52,6 +34,15 @@
     (node-update node)
     (when childs
       (mapc #'update-tree childs))))
+
+(defun create-node (&key name x y)
+  (let ((node (make-instance 'node
+                             :name (cond ((string= name " ") :list)
+                                         ((string= name ".") :dot)
+                                         (t name))
+                             :x x :y y)))
+    (node-update node)
+    node))
 
 (defmethod node-in-rect ((node node) x1 y1 x2 y2)
   (let ((x1 (min x1 x2))
@@ -175,11 +166,9 @@ horizontaly equal, sort it by vertical (from upper)"
   (with-slots ((parent-childs childs)) parent
     (with-slots ((child-parents parents)) child
       (if (find child parent-childs)
-          ;; (setf parent-childs (remove child parent-childs)
-          ;;       child-parents (remove parent child-parents))
           (progn
-            (delete child parent-childs)
-            (delete parent child-parents))
+            (setf parent-childs (delete child parent-childs)
+                  child-parents (delete parent child-parents)))
           (when (not (eq parent child))
             (pushnew child parent-childs)
             (pushnew parent child-parents)
@@ -200,3 +189,21 @@ horizontaly equal, sort it by vertical (from upper)"
         (setf childs (delete node childs))))
     (setf childs  ()
           parents ())))
+
+
+(defmethod draw-node ((node node) show-name)
+  (with-slots (name x y width color message error parents) node
+    (when (stringp name)
+      (apply #'gl:color color)
+      (quad-shape x y 0 width *node-height*))
+    (gl:color 1 1 1)
+    (when show-name
+      (text (if (stringp name)
+                name
+                (case name (:list "(●)") (:dot "●") (t "?")))
+            x y *node-text-height* 0)
+      (when message
+        (if error
+            (gl:color 1 1 0 0.5)
+            (gl:color 0 1 1))
+        (text message x (- y (* *node-height* 2)) *node-text-height* 0)))))

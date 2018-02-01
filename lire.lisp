@@ -14,17 +14,19 @@
 
 
 (defpackage :lire
+  (:shadowing-import-from :cl-glut width height)
   (:use :cl))
 
 (in-package :lire)
 
-(dolist (file '("utils.lisp"
-                "shapes.lisp"
-                "text.lisp"
-                "node.lisp"
-                "evaluation.lisp"
-                "canvas.lisp"
-                "window.lisp"))
+(dolist (file '("settings"
+                "utils"
+                "shapes"
+                "text"
+                "node"
+                "evaluation"
+                "canvas"
+                "window"))
   (load file))
 
 (defparameter *lire* (make-instance 'lire-window))
