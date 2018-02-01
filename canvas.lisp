@@ -237,7 +237,7 @@
                    (lambda (node) (pointer-at-node-p canvas node))
                    (rest nodes-at-screen))))
       (when select
-        (when (and (not (find select connecting-nodes)))
+        (when (not (find select connecting-nodes))
           (setf selected-nodes
                 (cons select selected-nodes))
           (connect-selected canvas))
