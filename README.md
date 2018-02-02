@@ -4,12 +4,15 @@
 *"Maybe if lisp started today, we would a syntax of lisp look like trees"* -- **Hal Abelson** ([1986 lecture](https://www.youtube.com/watch?v=XYKRVNQ_MqE&feature=youtu.be&t=34m33s))
 
 ## Status
-At this time i actively refactoring the system. Points is: moving to glup window system, introducing classes for better reusability, pixel as position unit. Update will pushed in some weeks.
+Refactoring step is done and now it seems stable.
+Next step is to implement copy\paste and save\load functionality. To make it usable i will make some UI around it.
+
+Also i need to code generator handle multiple dot translations from one node, which is just LET wrap around parent node. See the [planner](https://github.com/honix/Lire/projects/1) for more info.
 
 ## In short
 Lire is a lisp expressions visual editor, this allows you to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree). It runs on top of Common Lisp.
 
-Lire is work in progress project.
+Im doing diploma on this topic. Lire is work in progress project.
 
 ## Modeling list
 Try to enter
