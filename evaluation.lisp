@@ -33,22 +33,19 @@
 (defmethod eval-node ((node node))
   (with-slots (message error name) node
     (setf message "...")
-    (let* ((cod (compose-code node))
-           (eva (multiple-value-list
-                 (e-eval cod :echo)))
-           (res (first  eva))
-           (err (second eva)))
-      (if (typep err 'error)
+    (let* ((code   (compose-code node))
+           (eval   (multiple-value-list
+                    (e-eval code :echo)))
+           (result  (first eval))
+           (e-error (second eval)))
+      (if (typep error 'error)
           (progn
             (setf error t)
-            (setf message (write-to-string err :length 16)))
+            (setf message (write-to-string e-error :length 16)))
           (progn
             (setf error nil)
             (setf message
-                  (write-to-string (if (eq name :dot)
-                                       cod
-                                       res)
-                                   :length 16)))))))
+                  (write-to-string result :length 16)))))))
 
 (defmethod eval-node-threaded ((node node))
   (bordeaux-threads:make-thread (lambda () (eval-node node))))

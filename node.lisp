@@ -149,7 +149,7 @@ horizontaly equal, sort it by vertical (from upper)"
                   (with-slots ((ax x) (ay y)) a
                     (with-slots ((bx x) (by y)) b
                       (if (< (- ax 0.01) bx (+ ax 0.01))
-                          (> ay by)
+                          (< ay by)
                           (< ax bx)))))))))
 
 (defmethod find-heads ((node node))
