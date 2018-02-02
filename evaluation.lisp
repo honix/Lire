@@ -4,31 +4,28 @@
 
 (in-package :lire)
 
-(defmethod compose-code ((node node))
+(defmethod compose-code ((node node) &key from-list)
   "Make lisp form"
   (with-slots (name parents childs) node
     (if (stringp name)
-                                        ; symbols
+                                        ; ~symbols
         (let ((symbol (e-eval `(read-from-string ,name))))
-          (cond
-            (childs                      ; (symbol child1 child2 ...)
-             `(,symbol ,@(mapcar #'compose-code (sort-childs node))))
-            ((and (null parents)         ; (function-symbol)
-                  (function-symbol-p symbol))
-             `(,symbol))
-            (t                           ; symbol
-             symbol)))
-                                        ; specials
+          (if (and (function-symbol-p symbol) (not from-list))
+                                        ; -> (symbol child1 child2 ...)
+              `(,symbol ,@(mapcar #'compose-code (sort-childs node)))
+                                        ; -> symbol
+              symbol))
+                                        ; ~specials
         (case name
-          (:list                         ; (child1 child2 ...)
-           (mapcar #'compose-code
+          (:list                        ; -> (child1 child2 ...)
+           (mapcar (lambda (node) (compose-code node :from-list t))
                    (sort-childs node)))
-          (:dot                          ; child1 child2 ...
+          (:dot                         ; -> child1 child2 ...
            (if (null (cdr childs))
-               (compose-code (car childs)) ; short link
-               `(values                    ; multiple link
-                 ,@(mapcar #'compose-code
-                           (sort-childs node)))))))))
+                                        ; short link
+               (compose-code (car childs))
+                                        ; multiple link
+               `(values ,@(mapcar #'compose-code (sort-childs node)))))))))
 
 (defmethod eval-node ((node node))
   (with-slots (message error name) node
