@@ -35,7 +35,7 @@
                     (e-eval code :echo)))
            (result  (first eval))
            (e-error (second eval)))
-      (if (typep error 'error)
+      (if (typep e-error 'error)
           (progn
             (setf error t)
             (setf message (write-to-string e-error :length 16)))

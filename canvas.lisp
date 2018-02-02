@@ -34,10 +34,9 @@
   (map 'list
        (lambda (n) (write-to-string (swank::fuzzy-matching.symbol n)))
        (let ((comps (sort
-                     (swank::fuzzy-find-matching-symbols
-                      string *package*)
+                     (swank::fuzzy-find-matching-symbols string *package*)
                      #'> :key #'swank::fuzzy-matching.score)))
-         (subseq comps 0 (min 9 (length comps))))))
+         (subseq comps 0 (min (length comps) 9)))))
 
 ;;;
 ;;  Nodes work

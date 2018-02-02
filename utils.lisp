@@ -18,7 +18,8 @@
 
 (defun function-symbol-p (symbol)
   (e-eval
-   `(not (null (ignore-errors (symbol-function ',symbol))))))
+   `(not (null (ignore-errors (and (symbolp ',symbol)
+                                   (symbol-function ',symbol)))))))
 
 ;;;
 ;;  Math
