@@ -11,7 +11,7 @@
    (mouse-left  :initform nil)
    (mouse-right :initform nil)
 
-   (canvas        :initform nil)
+   (modules :initform ())
    (active-module :initform nil))
   (:default-initargs :width *initial-width* :height *initial-height*
                      :pos-x 100 :pos-y 100
@@ -23,11 +23,12 @@
 ;;  Window initialization and input binding
 ;;;
 
-(defmethod initialize-instance :before ((w lire-window) &rest rest)
+(defmethod initialize-instance :after ((w lire-window) &rest rest)
   (declare (ignore rest))
-  (with-slots (canvas active-module) w
-    (setf canvas (make-instance 'canvas :window w)
-          active-module canvas)))
+  (with-slots (modules active-module) w
+    (setf modules (list (make-instance 'canvas :window w)
+                        (make-instance 'menu   :window w))
+          active-module (first modules))))
 
 (defmethod glut:display-window :before ((w lire-window))
   (sdl2-ttf:init)
@@ -47,7 +48,11 @@
     (gl:ortho (- hwidth)  (+ hwidth)
               (+ hheight) (- hheight) 0 1)
     (gl:translate (- hwidth) (- hheight) -1))
-  (gl:matrix-mode :modelview))
+  (gl:matrix-mode :modelview)
+
+  (with-slots (modules) w
+    (loop for module in modules do
+         (reshape module))))
 
 (defmethod glut:close ((w lire-window))
   (sdl2-ttf:quit))
@@ -55,12 +60,12 @@
 
 (defmethod glut:display ((w lire-window))
   (with-simple-restart (display-restart "Display")
-    (gl:clear :color-buffer :stencil-buffer-bit)
-    
-    (process (slot-value w 'canvas))
-    ;; (for module in modules do (draw module))
-    
-    (glut:swap-buffers)))
+    (with-slots (modules) w
+      (gl:clear :color-buffer :stencil-buffer-bit)
+      
+      (loop for module in modules do (draw module))
+      
+      (glut:swap-buffers))))
   
 (defmethod glut:idle ((w lire-window))
   ;; Updates

@@ -26,6 +26,7 @@
                 "node"
                 "evaluation"
                 "canvas"
+                "menu"
                 "window"))
   (load file))
 

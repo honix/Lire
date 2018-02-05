@@ -4,13 +4,13 @@
 
 (in-package :lire)
 
-(defmethod compose-code ((node node) &key from-list)
+(defmethod compose-code ((node node))
   "Make lisp form"
   (with-slots (name parents childs) node
     (if (stringp name)
                                         ; ~symbols
         (let ((symbol (e-eval `(read-from-string ,name))))
-          (if (and (function-symbol-p symbol) (not from-list))
+          (if (and (function-symbol-p symbol))
                                         ; -> (symbol child1 child2 ...)
               `(,symbol ,@(mapcar #'compose-code (sort-childs node)))
                                         ; -> symbol
@@ -18,8 +18,7 @@
                                         ; ~specials
         (case name
           (:list                        ; -> (child1 child2 ...)
-           (mapcar (lambda (node) (compose-code node :from-list t))
-                   (sort-childs node)))
+           (mapcar #'compose-code (sort-childs node)))
           (:dot                         ; -> child1 child2 ...
            (if (null (cdr childs))
                                         ; short link

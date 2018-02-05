@@ -143,6 +143,11 @@
     (setf pointer-x (+ (/ x zoom) camera-x)
           pointer-y (+ (/ y zoom) camera-y))))
 
+(defmethod set-pointer-position ((canvas canvas))
+  (with-slots (pointer-x pointer-y position-x position-y) canvas
+      (setf pointer-x position-x
+            pointer-y position-y)))
+
 (defmethod update-completions ((canvas canvas))
   (with-slots (completions new-node-name) canvas
     (if (> (length new-node-name) 1)
@@ -253,6 +258,9 @@
 ;;  Input binds
 ;;;
 
+(defmethod reshape ((canvas canvas))
+  (repose canvas))
+
 (defmethod special-key ((canvas canvas) key)
   (with-slots (selected-nodes new-node-name key-move zoom
                               camera-x camera-y position-x position-y
@@ -311,7 +319,10 @@
            (incf completions-select)
            (progn
              (setf key-move t)
-             (incf position-y *grid-size*)))))))
+             (incf position-y *grid-size*)))))
+    (case key
+      ((:key-left :key-right :key-up :key-down)
+       (set-pointer-position canvas)))))
 
 (defmethod special-key-up ((canvas canvas) key)
   (case key
@@ -334,12 +345,22 @@
 (defmethod motion ((canvas canvas) x y dx dy)
   (with-slots (window
                connecting-nodes nodes
+               selected-nodes
                zoom camera-x camera-y
+               selector selector-x selector-y
+               pointer-x pointer-y
                key-move)
       canvas
     (set-pointer canvas x y)
     (setf key-move nil)
-    (with-slots (mouse-right) window
+    (with-slots (mouse-left mouse-right) window
+      (when (and mouse-left (not selector))
+        (dolist (node selected-nodes)
+          (with-slots (x y) node
+            (incf x (- pointer-x selector-x))
+            (incf y (- pointer-y selector-y))))
+        (setf selector-x pointer-x
+              selector-y pointer-y))
       (when mouse-right
         (if connecting-nodes
             (progn
@@ -369,41 +390,16 @@
   (set-zoom canvas (* y 0.1)))
 
 ;;;
-;;  Every-frame procedures
+;;  Focus
 ;;;
 
-(defmethod set-pointer-position ((canvas canvas))
-  (with-slots (pointer-x pointer-y position-x position-y) canvas
-      (setf pointer-x position-x
-            pointer-y position-y)))
+(defmethod in-focus-p ((canvas canvas) x y)
+  "Returns t if mouse is over this widget"
+  t)
 
-(defmethod input-update ((canvas canvas))
-  ;;
-  ;; This function is somehow strange
-  ;;
-  (with-slots (window
-               key-move
-               selector
-               selected-nodes
-               selector-x selector-y
-               pointer-x pointer-y
-               position-x position-y)
-      canvas
-    (with-slots (mouse-left mouse-right) window
-      (when key-move
-        (set-pointer-position canvas))
-      
-      (when (and mouse-left (not selector))
-        (dolist (node selected-nodes)
-          (with-slots (x y) node
-            (incf x (- pointer-x selector-x))
-            (incf y (- pointer-y selector-y))))
-        (setf selector-x pointer-x
-              selector-y pointer-y))
-
-      (when (not (or mouse-right key-move))
-        (snap-to-grid position-x)
-        (snap-to-grid position-y)))))
+;;;
+;;  Draw
+;;;
 
 (defmethod draw ((canvas canvas))
   (with-slots (window
@@ -492,7 +488,3 @@
     (gl:color 1 1 1 0.5)
     (with-slots (height) window
       (text-align (princ-to-string *package*) 5 (- height 10) 10 0))))
-
-(defmethod process ((canvas canvas))
-  (input-update canvas)
-  (draw canvas))
