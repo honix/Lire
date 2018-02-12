@@ -7,8 +7,6 @@
 Refactoring step is done and now it seems stable.
 Next step is to implement copy\paste and save\load functionality. To make it usable i will make some UI around it.
 
-Also i need to code generator handle multiple dot translations from one node, which is just LET wrap around parent node. See the [planner](https://github.com/honix/Lire/projects/1) for more info.
-
 ## In short
 Lire is a lisp expressions visual editor, this allows you to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree). It runs on top of Common Lisp.
 
