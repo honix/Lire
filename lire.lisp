@@ -20,6 +20,7 @@
 (in-package :lire)
 
 (dolist (file '("settings"
+                "file-dialog"
                 "utils"
                 "shapes"
                 "text"

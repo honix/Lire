@@ -14,8 +14,8 @@
    (height :initform 0)
    
    (buttons :initform
-            '(("save" . nil)
-              ("load" . nil)))))
+            `(("save" ,#'save-lire)
+              ("load" ,#'load-lire)))))
 
 (defmethod reshape ((menu menu))
   (with-slots (window x y height buttons) menu
@@ -30,17 +30,33 @@
 
 (defmethod in-focus-p ((menu menu) x y)
   "Returns t if mouse is over this widget"
-  (with-slots (window buttons) menu
-    ))
+  (with-slots ((mx x) (my y) height) menu
+    (and (< mx x (+ mx *menu-width*))
+         (< my y (+ my height)))))
+
+;;;
+;;  Events
+;;;
+
+(defmethod mouse ((menu menu) button state x y)
+  (with-slots ((my y) buttons) menu
+    (when (and (eq button :left-button)
+               (eq state :down))
+      (let ((n (floor (/ (- y my) *menu-button-height*))))
+        (funcall (second (nth n buttons)))))))
 
 ;;;
 ;;  Draw
 ;;;
 
-(defmethod draw ((menu menu))
+(defmethod draw ((menu menu) active)
   (with-slots (window x y height buttons) menu
     (gl:with-pushed-matrix
       (gl:translate x y 0)
+      (when active
+        (gl:color 0 0 1 1)
+        (gl:line-width 2)
+        (aligned-quad-lines 0 0 0 *menu-width* height))
       (gl:color 1 1 1 0.1)
       (aligned-quad-shape 0 0 0 *menu-width* height)
       (let ((b-width/2  (/ *menu-width*         2))

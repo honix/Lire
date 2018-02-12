@@ -26,7 +26,8 @@
   (declare (ignore rest))
   (with-slots (childs active-child) w
     (add-childs w (list (make-instance 'canvas)
-                        (make-instance 'menu)))))
+                        (make-instance 'menu)))
+    (setf active-child (first childs))))
 
 (defmethod glut:display-window :before ((w lire-window))
   (sdl2-ttf:init)
@@ -58,10 +59,11 @@
 
 (defmethod glut:display ((w lire-window))
   (with-simple-restart (display-restart "Display")
-    (with-slots (childs) w
+    (with-slots (childs active-child) w
       (gl:clear :color-buffer :stencil-buffer-bit)
       
-      (loop for child in childs do (draw child))
+      (loop for child in childs do
+           (draw child (eq child active-child)))
       
       (glut:swap-buffers))))
   
@@ -75,11 +77,10 @@
     (glut:post-redisplay)))
 
 (defmethod mouse-motion ((w lire-window) x y)
-  (with-slots (mouse-x mouse-y childs active-child) w
+  (with-slots (mouse-x mouse-y active-child) w
     (let ((dx (- mouse-x x))
           (dy (- mouse-y y)))
       (setf mouse-x x mouse-y y)
-      (setf active-child (find-if (lambda (w) (in-focus-p w x y)) childs))
       (motion active-child x y dx dy))))
 
 (defmethod glut:motion ((w lire-window) x y)
@@ -88,12 +89,17 @@
 
 (defmethod glut:passive-motion ((w lire-window) x y)
   (with-simple-restart (passive-motion-restart "Passive-motion")
-    (mouse-motion w x y)))
+    (with-slots (childs active-child) w
+      (mouse-motion w x y))))
 
 (defmethod glut:mouse ((w lire-window) button state x y)
   (with-simple-restart (mouse-restart "Mouse")
-    (with-slots (mouse-x mouse-y mouse-left mouse-right active-child) w
+    (with-slots (mouse-x mouse-y mouse-left mouse-right childs active-child) w
       (setf mouse-x x mouse-y y)
+      (when (eq state :down)
+        (setf active-child (find-if (lambda (w) (in-focus-p w x y))
+                                    childs
+                                    :from-end t)))
       (case button
         (:left-button
          (setf mouse-left (eq state :down)))

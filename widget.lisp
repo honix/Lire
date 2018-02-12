@@ -17,7 +17,7 @@
 
 (defmethod add-childs ((w widget) childs)
   (mapc (lambda (child) (add-child w child))
-        childs))
+        (reverse childs)))
 
 ;;;
 ;;  Events
@@ -27,7 +27,7 @@
 
 (defmethod reshape ((w widget)))
 
-(defmethod draw ((w widget)))
+(defmethod draw ((w widget) active))
 
 (defmethod motion       ((w widget) x y dx dy))
 (defmethod mouse        ((w widget) button state x y))

@@ -399,7 +399,7 @@
 ;;  Draw
 ;;;
 
-(defmethod draw ((canvas canvas))
+(defmethod draw ((canvas canvas) active)
   (with-slots (window
                selector
                selected-nodes
@@ -420,13 +420,6 @@
     (gl:color 1 1 1 0.1)
     (simple-cross 0 0 *grid-size*)
     (text-align "0,0" 10 20 *node-text-height* 0)
-    
-                                        ; pointer
-    (let ((x pointer-x) (y pointer-y))
-      (gl:line-width 2)
-      (gl:color 1 1 0 0.1)
-      (simple-cross (snap-to-grid x) (snap-to-grid y)
-                    (/ *grid-size* 5)))
     
                                         ; position
     (let ((flicker (+ (abs (* (sin (get-time)) 0.6)) 0.2)))
@@ -481,8 +474,14 @@
         (text comp position-x (incf y (* *node-height* 1.1))
               *node-text-height* 0)))
     
-                                        ; gui
-    (gl:load-identity)
-    (gl:color 1 1 1 0.5)
-    (with-slots (height) window
+                                        ; overlay
+    (with-slots (width height) window
+      (gl:load-identity)
+      
+      (when active
+        (gl:color 0 0 1 1)
+        (gl:line-width 2)
+        (aligned-quad-lines 0 0 0 width height))
+      
+      (gl:color 1 1 1 0.5)
       (text-align (princ-to-string *package*) 5 (- height 10) 10 0))))
