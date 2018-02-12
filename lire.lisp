@@ -25,6 +25,7 @@
                 "text"
                 "node"
                 "evaluation"
+                "widget"
                 "canvas"
                 "menu"
                 "window"))

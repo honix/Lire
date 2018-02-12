@@ -10,7 +10,7 @@
     (if (stringp name)
                                         ; ~symbols
         (let ((symbol (e-eval `(read-from-string ,name))))
-          (if (and (function-symbol-p symbol))
+          (if (and (function-symbol-p symbol) childs)
                                         ; -> (symbol child1 child2 ...)
               `(,symbol ,@(mapcar #'compose-code (sort-childs node)))
                                         ; -> symbol

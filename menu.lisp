@@ -9,10 +9,8 @@
 (defparameter *menu-button-height* 30) ; px
 (defparameter *menu-offset* 10) ; px
 
-(defclass menu () ; maybe will extend some 'widget class
-  ((window :initarg :window)
-   
-   (x :initform 0) (y :initform 0)
+(defclass menu (widget)
+  ((x :initform 0) (y :initform 0)
    (height :initform 0)
    
    (buttons :initform

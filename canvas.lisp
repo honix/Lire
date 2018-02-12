@@ -4,10 +4,8 @@
 
 (in-package :lire)
 
-(defclass canvas ()
-  ((window :initarg :window)
-   
-   (completions        :initform ())
+(defclass canvas (widget)
+  ((completions        :initform ())
    (completions-select :initform  -1)
    
    (position-x    :initform 0) (position-y    :initform 0)
