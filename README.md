@@ -24,7 +24,7 @@ Before run Lire check that you dependencies ready
 
 **Linux**
 
-- Ubuntu (apt-get): ```sudo apt-get zenity install libffi6 libffi-dev libsdl2 libsdl2-image libsdl2-ttf```
+- Ubuntu (apt-get): ```sudo apt-get install zenity libffi6 libffi-dev libsdl2 libsdl2-image libsdl2-ttf```
 
 - Fedora (dnf): ```sudo dnf install zenity libffi libffi-dev SDL2 SDL2_image SDL2_ttf```
 
