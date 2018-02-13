@@ -25,7 +25,7 @@
           (if (ignore-errors (function-symbol-p
                               (read-from-string name)))
               (hsv-to-rgb (mod (sxhash name) 360)
-                          0.75 0.55)
+                          0.75 0.5)
               (hsv-to-rgb 0 0 0.3))))
   node)
 
@@ -59,15 +59,19 @@
 ;;  Node drawing functions
 ;;;
 
-(defmethod draw-wires ((node node))
+(defmethod draw-wires ((node node) wire-width)
   (with-slots (x y color childs) node
     (dolist (child childs)
       (with-slots ((cx x) (cy y)) child
         (apply #'gl:color color)
+        (gl:line-width wire-width)
         (simple-line x y cx cy)
-        (gl:color 1 1 1 0.5)
-        (let ((pulse-in  0.5)
-              (pulse-out 0))
+        (apply #'gl:color *background-color*)
+        (let* ((gap        0.2)
+               (pulse     (mod (/ (get-time) 2) (+ 1 gap)))
+               (pulse-in  (max 0 (- pulse gap)))
+               (pulse-out (min 1 pulse)))
+          (gl:line-width (/ wire-width 3))
           (simple-line
            (+ cx (* (- x cx) pulse-in))
            (+ cy (* (- y cy) pulse-in))
@@ -76,11 +80,11 @@
 
 (defmethod draw-selection ((node node) &optional first)
   (with-slots (x y width) node
-    (let ((alpha 1))
-      (if first
-          (gl:color 1 1 0 alpha)
-          (gl:color 0 1 1 alpha)))
+    (if first
+        (apply #'gl:color *warn-color*)
+        (apply #'gl:color *normal-color*))
     (let ((x x) (y y))
+      (gl:line-width 1)
       (quad-lines (snap-to-grid x)
                   (snap-to-grid y) 0
                   (+ width         3)
@@ -109,7 +113,7 @@
 
 (defmethod draw-args-list ((node node))
   (with-slots (x y childs) node
-    (gl:color 1 1 1 0.5)
+    (apply #'gl:color *dimm-color*)
     (text (args-list node) x (+ y (* *node-height* 2))
           (* *node-text-height* 0.7) 0)
                                         ; childs numbering
@@ -202,14 +206,12 @@ horizontaly equal, sort it by vertical (from upper)"
     (when (stringp name)
       (apply #'gl:color color)
       (quad-shape x y 0 width *node-height*))
-    (gl:color 1 1 1)
+    (apply #'gl:color (if (stringp name) '(1 1 1 1) *alt-color*))
     (when show-name
-      (text (if (stringp name)
-                name
-                (case name (:list "(●)") (:dot "●") (t "?")))
+      (text (case name (:list "(●)") (:dot "●") (t name))
             x y *node-text-height* 0)
       (when message
         (if error
-            (gl:color 1 1 0 0.5)
-            (gl:color 0 1 1))
+            (apply #'gl:color *warn-color*)
+            (apply #'gl:color *normal-color*))
         (text message x (- y (* *node-height* 2)) *node-text-height* 0)))))

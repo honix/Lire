@@ -7,7 +7,10 @@
 (defclass widget ()
   ((window :type 'widget)
    (parent :type 'widget)
-   (childs :initform ())))
+   (childs :initform ())
+
+   (width  :initform 0)
+   (height :initform 0)))
 
 (defmethod add-child ((w widget) (child widget))
   (push child (slot-value w 'childs))
@@ -20,10 +23,18 @@
         (reverse childs)))
 
 ;;;
-;;  Events
+;;  Focus-pokus
 ;;;
 
-(defmethod in-focus-p ((w widget) x y))
+(defmethod in-focus-p ((w widget) x y)
+  "Returns t if mouse is over this widget"
+  (with-slots ((mx x) (my y) width height) w
+    (and (< mx x (+ mx width))
+         (< my y (+ my height)))))
+
+;;;
+;;  Events
+;;;
 
 (defmethod reshape ((w widget)))
 

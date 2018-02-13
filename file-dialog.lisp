@@ -14,8 +14,10 @@
     (let ((out (make-string-output-stream))
           (command
            (case operation
-             (:load "zenity --file-selection")
-             (:save "zenity --file-selection --save --confirm-overwrite")
+             (:load
+              "zenity --file-selection --title=Load")
+             (:save
+              "zenity --file-selection --title=Save --save --confirm-overwrite")
              (t (error "Use :load or :save key")))))
       (uiop:run-program command :output out)
       (get-output-stream-string out))

@@ -257,6 +257,10 @@
 ;;;
 
 (defmethod reshape ((canvas canvas))
+  (with-slots (window (w-width width) (w-height height)) canvas
+    (with-slots (width height) window
+        (setf w-width  width
+              w-height height)))
   (repose canvas))
 
 (defmethod special-key ((canvas canvas) key)
@@ -417,21 +421,20 @@
     
                                         ; center
     (gl:line-width 2)
-    (gl:color 1 1 1 0.1)
+    (apply #'gl:color *dimm-color*)
     (simple-cross 0 0 *grid-size*)
     (text-align "0,0" 10 20 *node-text-height* 0)
     
                                         ; position
-    (let ((flicker (+ (abs (* (sin (get-time)) 0.6)) 0.2)))
-      (gl:line-width 1)
-      (gl:color 0 flicker flicker)
-      (simple-cross position-x position-y (/ *grid-size* 2)))
+    (gl:line-width 1)
+    (apply #'gl:color *normal-color*)
+    (simple-cross position-x position-y (/ *grid-size* 2))
 
                                         ; nodes
-    (gl:line-width (floor (max (* zoom 10) 1)))
-    (mapc #'draw-wires nodes)
-    
-    (gl:line-width 1)
+    (mapc (lambda (node)
+            (draw-wires node
+                        (floor (max (* zoom 10) 1))))
+          nodes)
 
     (let ((show-name (> zoom 0.3)))
       (mapc (lambda (node) (draw-node node show-name)) nodes-at-screen))
@@ -451,17 +454,15 @@
              (y (min selector-y pointer-y))
              (w (- (max selector-x pointer-x) x))
              (h (- (max selector-y pointer-y) y)))
-        (gl:color 0.5 0.7 1 0.3)
-        (aligned-quad-shape x y 0 w h)
-        (gl:color 0.5 0.7 1)
-        (aligned-quad-lines x y 0 w h)))
+        (apply #'gl:color *selector-color*)
+        (aligned-quad-shape x y 0 w h)))
 
                                         ; new node
     (when (not (string= new-node-name ""))
       (let ((node (create-node :name new-node-name
                                :x position-x
                                :y position-y)))
-        (setf (slot-value node 'color) (list 0 0 0))
+        (setf (slot-value node 'color) '(0 0 0 0.75))
         (draw-node node t)))
     
                                         ; completion list
@@ -469,8 +470,8 @@
           (y (+ position-y (* *node-height* 1.5))))
       (dolist (comp completions)
         (if (= completions-select (incf count))
-            (gl:color 0 1 1 1.0)
-            (gl:color 1 1 1 0.1))
+            (apply #'gl:color *normal-color*)
+            (apply #'gl:color *dimm-color*))
         (text comp position-x (incf y (* *node-height* 1.1))
               *node-text-height* 0)))
     
@@ -479,9 +480,9 @@
       (gl:load-identity)
       
       (when active
-        (gl:color 0 0 1 1)
+        (apply #'gl:color *normal-color*)
         (gl:line-width 2)
         (aligned-quad-lines 0 0 0 width height))
       
-      (gl:color 1 1 1 0.5)
+      (apply #'gl:color *dimm-color*)
       (text-align (princ-to-string *package*) 5 (- height 10) 10 0))))

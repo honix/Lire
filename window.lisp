@@ -32,7 +32,6 @@
 (defmethod glut:display-window :before ((w lire-window))
   (sdl2-ttf:init)
   (clean-text-hash)
-  (gl:clear-color 0.1 0.1 0.1 0)
   (gl:enable :texture-2d :blend)
   (gl:blend-func :src-alpha :one-minus-src-alpha))
 
@@ -60,6 +59,7 @@
 (defmethod glut:display ((w lire-window))
   (with-simple-restart (display-restart "Display")
     (with-slots (childs active-child) w
+      (apply #'gl:clear-color *background-color*)
       (gl:clear :color-buffer :stencil-buffer-bit)
       
       (loop for child in childs do

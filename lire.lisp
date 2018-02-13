@@ -35,4 +35,5 @@
 (defparameter *lire* (make-instance 'lire-window))
 
 (bordeaux-threads:make-thread
- (lambda () (glut:display-window *lire*)))
+ (lambda () (glut:display-window *lire*))
+ :name "Lire-UI-thread")
