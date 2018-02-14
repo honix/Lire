@@ -6,7 +6,8 @@
 
 (defclass node ()
   ((name :initarg :name)
-   (x :initarg :x) (y :initarg :y)
+   (x :type fixnum :initarg :x)
+   (y :type fixnum :initarg :y)
    (width   :initform 0)
    (color   :initform nil)
    (message :initform nil)

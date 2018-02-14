@@ -7,9 +7,11 @@
 (defclass lire-window (glut:window widget)
   ((mouse-x     :initform 0)
    (mouse-y     :initform 0)
-   (shift       :initform nil)
    (mouse-left  :initform nil)
    (mouse-right :initform nil)
+   (shift       :initform nil)
+   (ctrl        :initform nil)
+   (alt         :initform nil)
 
    (active-child :initform nil))
   (:default-initargs :width *initial-width* :height *initial-height*
@@ -124,18 +126,26 @@
 (defmethod glut:special ((w lire-window) special-key x y)
   ;; Catches :KEY-F1 :KEY-LEFT-SHIFT :KEY-HOME :KEY-LEFT etc..
   (with-simple-restart (special-key-restart "Special-key")
-    (with-slots (active-child shift) w
+    (with-slots (active-child shift ctrl alt) w
       (case special-key
         ((:key-left-shift :key-right-shift)
-         (setf shift t)))
+         (setf shift t))
+        ((:key-left-ctrl :key-right-ctrl)
+         (setf ctrl t))
+        ((:key-left-alt :key-right-alt)
+         (setf alt t)))
       (special-key active-child special-key))))
 
 (defmethod glut:special-up ((w lire-window) special-key x y)
   (with-simple-restart (special-key-up-restart "Special-key-up")
-    (with-slots (active-child shift) w
+    (with-slots (active-child shift ctrl alt) w
       (case special-key
         ((:key-left-shift :key-right-shift)
-         (setf shift nil)))
+         (setf shift nil))
+        ((:key-left-ctrl :key-right-ctrl)
+         (setf ctrl nil))
+        ((:key-left-alt :key-right-alt)
+         (setf alt nil)))
       (special-key-up active-child special-key))))
 
 (defmethod glut:keyboard ((w lire-window) key x y)

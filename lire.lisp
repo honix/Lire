@@ -20,12 +20,13 @@
 (in-package :lire)
 
 (dolist (file '("settings"
-                "file-dialog"
                 "utils"
                 "shapes"
                 "text"
                 "node"
                 "evaluation"
+                "writer"
+                "file-dialog"
                 "widget"
                 "canvas"
                 "menu"

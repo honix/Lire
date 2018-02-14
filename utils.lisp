@@ -29,10 +29,9 @@
   (+ from (* (- to from) amount)))
 
 (defmacro snap-to-grid (what)
-  `(decf ,what
-         (- (mod (+ ,what (/ *grid-size* 2))
-                 *grid-size*)
-            (/ *grid-size* 2))))
+  `(setf ,what
+         (let ((half (/ *grid-size* 2)))
+           (round (- ,what (- (mod (+ ,what half) *grid-size*) half))))))
 
 ;;;
 ;;  Color

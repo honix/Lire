@@ -18,6 +18,8 @@
    (nodes-at-screen  :initform ())
    (selected-nodes   :initform ())
 
+   (clipboard :initform "()")
+
    (selector :initform nil)
    (selector-x :initform 0) (selector-y :initform 0)
    
@@ -147,11 +149,12 @@
             pointer-y position-y)))
 
 (defmethod update-completions ((canvas canvas))
-  (with-slots (completions new-node-name) canvas
+  (with-slots (completions completions-select new-node-name) canvas
     (if (> (length new-node-name) 1)
         (setf completions
               (completion new-node-name))
-        (setf completions ()))))
+        (setf completions ()
+              completions-select -1))))
 
 ;;;
 ;;  Virtual input
@@ -264,11 +267,12 @@
   (repose canvas))
 
 (defmethod special-key ((canvas canvas) key)
+  ;; (print key)
   (with-slots (selected-nodes new-node-name key-move zoom
                               camera-x camera-y position-x position-y
-                              completions completions-select)
+                              completions completions-select
+                              clipboard)
       canvas
-    ; (print key)
     (case key
       (#\Tab
        (eval-tree selected-nodes))
@@ -279,8 +283,7 @@
                 (nth completions-select
                      completions))))
        (insert-new-node canvas)
-       (setf completions ()
-             completions-select -1))
+       (update-completions canvas))
       (#\Backspace
        (when (> (length new-node-name) 0)
          (setf new-node-name
@@ -290,12 +293,16 @@
          (update-completions canvas)))
       (#\Rubout ; delete-key
        (delete-selected-nodes canvas))
+      (#\     ; copy
+       (setf clipboard (write-lire selected-nodes)))
+      (#\     ; paste
+       (print clipboard))
       
-      ;; (:scancode-kp-7
-      ;;  (connect-selected))
-      ;; (:scancode-kp-1
-      ;;  (mapc #'destroy-connections
-      ;;        selected-nodes))
+      (#\
+       (connect-selected canvas))
+      (#\
+       (mapc #'destroy-connections
+             selected-nodes))
       
       ((:key-left-alt :key-right-alt)
        (press-pointer-primary canvas))
@@ -334,13 +341,19 @@
      (release-pointer-alter canvas))))
 
 (defmethod keyboard ((canvas canvas) key)
-  (with-slots (new-node-name completions) canvas
-    (ignore-errors 
-      (setf new-node-name
-            (concatenate 'string
-                         new-node-name
-                         (list key))))
-    (update-completions canvas)))
+  ;; (print key)
+  (with-slots (window new-node-name completions) canvas
+    (with-slots (ctrl alt) window
+      (cond
+        (ctrl ())
+        (alt  ())
+        (t
+         (ignore-errors 
+           (setf new-node-name
+                 (concatenate 'string
+                              new-node-name
+                              (list key))))
+         (update-completions canvas))))))
 
 (defmethod keyboard-up ((canvas canvas) key))
 
@@ -366,7 +379,6 @@
       (when mouse-right
         (if connecting-nodes
             (progn
-              ;; dublicates input-update function, this is better
               (incf (slot-value (car nodes) 'x)
                     (/ dx zoom -1))
               (incf (slot-value (car nodes) 'y)

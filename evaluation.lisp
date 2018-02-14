@@ -46,11 +46,14 @@
 (defmethod eval-node-threaded ((node node))
   (bordeaux-threads:make-thread (lambda () (eval-node node))))
 
+(defun heads (nodes)
+  (if (listp nodes)
+      (remove-duplicates
+       (flatten (mapcar #'find-heads nodes)))
+      (find-heads nodes)))
+
 (defun eval-tree (nodes)
-  (let ((heads (if (listp nodes)
-                   (remove-duplicates
-                    (flatten (mapcar #'find-heads nodes)))
-                   (find-heads nodes))))
+  (let ((heads (heads nodes)))
     (mapc #'eval-node-threaded heads)
     (mapc #'update-tree heads)))
 

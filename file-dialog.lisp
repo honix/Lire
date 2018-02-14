@@ -20,17 +20,16 @@
               "zenity --file-selection --title=Save --save --confirm-overwrite")
              (t (error "Use :load or :save key")))))
       (uiop:run-program command :output out)
-      (get-output-stream-string out))
+      (string-trim '(#\NewLine) (get-output-stream-string out)))
     #+windows
     (print "Windows dialog not implemented yet")))
-
-(defun file-dialog-threaded (operation)
-  (bordeaux-threads:make-thread (lambda () (file-dialog operation))))
 
 ;; be aware if user has not install zenity or smth
 
 (defun save-lire ()
-  (file-dialog-threaded :save))
+  (let ((path (file-dialog :save)))
+    (write-lire-to-file path)))
 
 (defun load-lire ()
-  (file-dialog-threaded :load))
+  (let ((path (file-dialog :load)))
+    (load-lire-from-file path)))
