@@ -6,31 +6,33 @@
 
 (defmethod compose-list ((head node))
   (with-slots (name childs) head
-    (if childs
-        (cons name (mapcar #'compose-list childs))
-        name)))
+    (cons name (mapcar #'compose-list childs))))
 
 (defmethod compose-poses ((head node))
   (with-slots (x y childs) head
-    (let ((pos (cons x y)))
-      (if childs
-          (cons pos (mapcar #'compose-poses childs))
-          pos))))
+    (cons (cons x y) (mapcar #'compose-poses childs))))
 
-(defmethod list-and-poses ((head node))
+(defmethod nodes-and-poses ((head node))
   (list
-   :code  (compose-list  head)
+   :nodes (compose-list  head)
    :poses (compose-poses head)))
 
 (defun write-lire (nodes)
   (let ((heads (heads nodes)))
     (write-to-string
-     (mapcar #'list-and-poses heads)
+     (mapcar #'nodes-and-poses heads)
      :pretty t)))
+
+;; Some ugly getters ~-~
+
+(defmacro canvas ()
+  '(first (slot-value *lire* 'childs)))
 
 (defmacro nodes ()
   "Ugly pump"
-  '(slot-value (first (slot-value *lire* 'childs)) 'nodes))
+  '(slot-value (canvas) 'nodes))
+
+;; //
 
 (defun write-lire-to-file (path)
   (format t "~%Writing ~s" path)
@@ -42,10 +44,21 @@
         (princ (write-lire (nodes)) out))
     (condition (e) (format t "~%Error while writing: ~a" e))))
 
+(defun valid-data-p (nodes-and-poses)
+  "Stupid and broken check for validity"
+  (or (eq nodes-and-poses ())
+      (let ((first-tree (car nodes-and-poses)))
+        (and (find :nodes first-tree)
+             (find :poses first-tree)))))
+
 (defun load-lire-from-file (path)
   (format t "~%Loading ~s" path)
-  (handler-case
-      (with-open-file (in path)
-        (let ((code-and-poses (read in)))
-          (print code-and-poses)))
-    (condition (e) (format t "~%Error while loading: ~a" e))))
+  (let ((nodes-and-poses 
+         (handler-case
+             (with-open-file (in path)
+               (read in))
+           (condition (e) (format t "~%Error while loading: ~a" e)))))
+    (print nodes-and-poses)
+    (if (valid-data-p nodes-and-poses)
+        (inject-nodes (canvas) nodes-and-poses :clear t)
+        (format t "~%Error while reading"))))

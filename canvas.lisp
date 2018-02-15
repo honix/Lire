@@ -68,7 +68,7 @@
           selected-nodes ())
     (repose canvas)))
 
-(defmethod jump-to-previous-node ((canvas canvas))
+(defmethod select-last-node ((canvas canvas))
   (with-slots (nodes selected-nodes position-x position-y) canvas
     (let ((node (car nodes)))
       (when node
@@ -77,7 +77,7 @@
           (setf position-x x)
           (setf position-y (+ y *grid-size*)))))))
 
-(defmethod insert-new-node ((canvas canvas))
+(defmethod insert-new-node ((canvas canvas) &key (link t))
   (with-slots (nodes
                nodes-at-screen
                selected-nodes
@@ -86,24 +86,63 @@
       canvas
     (let ((under (find-if
                   (lambda (node) (position-at-node-p canvas node))
-                  nodes-at-screen)))
+                  nodes))
+          (inserted-node))
       (if under
           ;; new node overlaps old one -> replace it name!
           (progn
             (setf (slot-value under 'name) (slot-value new-node 'name))
             (clear new-node)
-            (node-update under))
+            (node-update under)
+            (setf inserted-node under))
           ;; actually new node
           (let ((node (produce-node new-node)))
             (push node nodes)
-            (if selected-nodes
-                (progn
-                  (flip-connection (car selected-nodes) node)
-                  (incf position-x  *grid-size*))
-                (progn
-                  (pushnew node selected-nodes)
-                  (incf position-y *grid-size*)))))
-      (repose canvas))))
+            (when link
+              (if selected-nodes
+                  (progn
+                    (flip-connection (car selected-nodes) node)
+                    (incf position-x  *grid-size*))
+                  (progn
+                    (pushnew node selected-nodes)
+                    (incf position-y *grid-size*))))
+            (setf inserted-node node)))
+      (repose canvas)
+      inserted-node)))
+
+(defmethod clear ((canvas canvas))
+  (with-slots (nodes selected-nodes) canvas    
+    (setf selected-nodes ()
+          nodes          ())
+    (repose canvas)))
+
+(defmethod inject-nodes ((canvas canvas) nodes-and-poses &key clear)
+  (when clear (clear canvas))
+  (with-slots (new-node position-x position-y) canvas
+    (labels ((inject-tree (nodes poses &key parent)
+               (let* ((name (car nodes))
+                      (pose (car poses))
+                      (x    (car pose))
+                      (y    (cdr pose)))
+                 (setf position-x x position-y y)
+                 (set-new-node new-node name x y)
+                 (let ((last-node (insert-new-node canvas :link nil)))
+                   (with-slots (parents childs) last-node
+                     (when parent
+                       (push parent parents))
+                     (setf childs (mapcar (lambda (nodes poses)
+                                            (inject-tree nodes
+                                                         poses
+                                                         :parent last-node))
+                                          (cdr nodes)
+                                          (cdr poses))))
+                   last-node))))
+      (mapc (lambda (tree)
+              (let ((nodes (cadr (member :nodes tree)))
+                    (poses (cadr (member :poses tree))))
+                (when (and nodes poses)
+                    (inject-tree nodes poses))))
+            nodes-and-poses))))
 
 ;;;
 ;;
@@ -225,8 +264,8 @@
         (repose canvas)))
     (when connecting-nodes
       (snap-node-to-grid (car nodes))
-      (setf selected-nodes ())
-      (setf connecting-nodes ()))))
+      (setf selected-nodes   ()
+            connecting-nodes ()))))
 
 ;;;
 ;;  Input binds
@@ -251,7 +290,7 @@
        (eval-tree selected-nodes))
       (#\Return
        (if (is-empty-p new-node)
-           (jump-to-previous-node canvas)
+           (select-last-node canvas)
            (progn
              (accept new-node)
              (insert-new-node canvas))))

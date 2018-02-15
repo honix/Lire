@@ -70,6 +70,13 @@
 ;;
 ;;;
 
+(defmethod set-new-node ((new-node new-node) s-name s-x s-y)
+  (with-slots (name x y) new-node
+    (setf name s-name
+          x s-x
+          y s-y)
+    (node-update new-node)))
+
 (defmethod clear ((new-node new-node))
   (with-slots (name) new-node
     (setf name "")
@@ -80,7 +87,7 @@
   (with-slots (name x y) new-node
     (let ((node (create-node :name name :x x :y y)))
       (clear new-node)
-      node)))
+      (node-update node))))
 
 ;;;
 ;;  Draw ;)

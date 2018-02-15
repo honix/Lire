@@ -22,7 +22,7 @@
       (uiop:run-program command :output out)
       (string-trim '(#\NewLine) (get-output-stream-string out)))
     #+windows
-    (print "Windows dialog not implemented yet")))
+    (princ "Windows dialog not implemented yet")))
 
 ;; be aware if user has not install zenity or smth
 
