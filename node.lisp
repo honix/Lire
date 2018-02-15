@@ -5,19 +5,26 @@
 (in-package :lire)
 
 (defclass node ()
-  ((name :initarg :name)
-   (x :type fixnum :initarg :x)
-   (y :type fixnum :initarg :y)
+  ((name           :initarg :name :initform "")
+   (x :type fixnum :initarg :x    :initform 0)
+   (y :type fixnum :initarg :y    :initform 0)
+   
    (width   :initform 0)
-   (color   :initform nil)
+   (color   :initform '(0 0 0))
+   
    (message :initform nil)
    (error   :initform nil)
+   
    (parents :initform ())
    (childs  :initform ())))
 
 (defmethod node-update ((node node))
   (with-slots (width name color) node
-    (setf width
+    (setf name
+          (cond ((string= name " ") :list)
+                ((string= name ".") :dot)
+                (t name))
+          width
           (if (stringp name)
               (+ (* (length name) *node-width-char*)
                  *node-width-bumps*)
@@ -38,12 +45,9 @@
 
 (defun create-node (&key name x y)
   (let ((node (make-instance 'node
-                             :name (cond ((string= name " ") :list)
-                                         ((string= name ".") :dot)
-                                         (t name))
+                             :name name
                              :x x :y y)))
-    (node-update node)
-    node))
+    (node-update node)))
 
 (defmethod node-in-rect ((node node) x1 y1 x2 y2)
   (let ((x1 (min x1 x2))

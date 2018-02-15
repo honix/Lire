@@ -20,11 +20,11 @@
           (:list                        ; -> (child1 child2 ...)
            (mapcar #'compose-code (sort-childs node)))
           (:dot                         ; -> child1 child2 ...
-           (if (null (cdr childs))
-                                        ; short link
-               (compose-code (car childs))
+           (if (cdr childs)
                                         ; multiple link
-               `(values ,@(mapcar #'compose-code (sort-childs node)))))))))
+               `(values ,@(mapcar #'compose-code (sort-childs node)))
+                                        ; short link
+               (compose-code (car childs))))))))
 
 (defmethod eval-node ((node node))
   (with-slots (message error name) node

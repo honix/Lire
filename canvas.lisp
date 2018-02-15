@@ -5,38 +5,23 @@
 (in-package :lire)
 
 (defclass canvas (widget)
-  ((completions        :initform ())
-   (completions-select :initform  -1)
-   
-   (position-x    :initform 0) (position-y    :initform 0)
+  ((position-x    :initform 0) (position-y    :initform 0)
    (camera-x      :initform 0) (camera-y      :initform 0)
    (zoom          :initform 1.0)
 
-   (new-node-name    :initform "")
    (nodes            :initform ())
    (connecting-nodes :initform ())
    (nodes-at-screen  :initform ())
    (selected-nodes   :initform ())
+   (new-node         :initform (make-instance 'new-node))
 
    (clipboard :initform "()")
 
-   (selector :initform nil)
+   (selector   :initform nil)
    (selector-x :initform 0) (selector-y :initform 0)
    
    (key-move  :initform nil)
    (pointer-x :initform 0) (pointer-y :initform 0)))
-
-;;;
-;;  Symbol finder
-;;;
-
-(defun completion (string)
-  (map 'list
-       (lambda (n) (write-to-string (swank::fuzzy-matching.symbol n)))
-       (let ((comps (sort
-                     (swank::fuzzy-find-matching-symbols string *package*)
-                     #'> :key #'swank::fuzzy-matching.score)))
-         (subseq comps 0 (min (length comps) 9)))))
 
 ;;;
 ;;  Nodes work
@@ -83,46 +68,42 @@
           selected-nodes ())
     (repose canvas)))
 
+(defmethod jump-to-previous-node ((canvas canvas))
+  (with-slots (nodes selected-nodes position-x position-y) canvas
+    (let ((node (car nodes)))
+      (when node
+        (with-slots (x y) node
+          (setf selected-nodes (list (car nodes)))
+          (setf position-x x)
+          (setf position-y (+ y *grid-size*)))))))
+
 (defmethod insert-new-node ((canvas canvas))
   (with-slots (nodes
                nodes-at-screen
                selected-nodes
-               new-node-name
+               new-node
                position-x position-y)
       canvas
-    (if (string= new-node-name "")
-                                        ; hit 'enter' without symbol -> jump to last created node
-        (let ((node (car nodes)))
-          (when node
-            (with-slots (x y) node
-              (setf selected-nodes (list (car nodes)))
-              (setf position-x x)
-              (setf position-y (+ y *grid-size*)))))
-                                        ; hit 'enter' with some symbol
-        (let ((under (find-if (lambda (node) (position-at-node-p canvas node)) nodes-at-screen)))
-          (if under
-                                        ; new node overlaps old one -> replace it name!
-              (progn
-                (setf (slot-value under 'name)
-                      (cond ((string= new-node-name " ") :list)
-                            ((string= new-node-name ".") :dot)
-                            (t new-node-name)))
-                (node-update under))
-                                        ; new node
-              (let ((new-node (create-node :name new-node-name
-                                           :x position-x
-                                           :y position-y)))
-                (push new-node nodes)
-
-                (if selected-nodes
-                    (progn
-                      (flip-connection (car selected-nodes) new-node)
-                      (incf position-x  *grid-size*))
-                    (progn
-                      (pushnew new-node selected-nodes)
-                      (incf position-y *grid-size*)))))
-          (setf new-node-name "")
-          (repose canvas)))))
+    (let ((under (find-if
+                  (lambda (node) (position-at-node-p canvas node))
+                  nodes-at-screen)))
+      (if under
+          ;; new node overlaps old one -> replace it name!
+          (progn
+            (setf (slot-value under 'name) (slot-value new-node 'name))
+            (clear new-node)
+            (node-update under))
+          ;; actually new node
+          (let ((node (produce-node new-node)))
+            (push node nodes)
+            (if selected-nodes
+                (progn
+                  (flip-connection (car selected-nodes) node)
+                  (incf position-x  *grid-size*))
+                (progn
+                  (pushnew node selected-nodes)
+                  (incf position-y *grid-size*)))))
+      (repose canvas))))
 
 ;;;
 ;;
@@ -147,14 +128,6 @@
   (with-slots (pointer-x pointer-y position-x position-y) canvas
       (setf pointer-x position-x
             pointer-y position-y)))
-
-(defmethod update-completions ((canvas canvas))
-  (with-slots (completions completions-select new-node-name) canvas
-    (if (> (length new-node-name) 1)
-        (setf completions
-              (completion new-node-name))
-        (setf completions ()
-              completions-select -1))))
 
 ;;;
 ;;  Virtual input
@@ -268,29 +241,22 @@
 
 (defmethod special-key ((canvas canvas) key)
   ;; (print key)
-  (with-slots (selected-nodes new-node-name key-move zoom
-                              camera-x camera-y position-x position-y
-                              completions completions-select
-                              clipboard)
+  (with-slots (selected-nodes
+               new-node key-move zoom
+               camera-x camera-y position-x position-y
+               clipboard)
       canvas
     (case key
       (#\Tab
        (eval-tree selected-nodes))
       (#\Return
-       (when (> completions-select -1)
-         (setf new-node-name
-               (string-downcase
-                (nth completions-select
-                     completions))))
-       (insert-new-node canvas)
-       (update-completions canvas))
+       (if (is-empty-p new-node)
+           (jump-to-previous-node canvas)
+           (progn
+             (accept new-node)
+             (insert-new-node canvas))))
       (#\Backspace
-       (when (> (length new-node-name) 0)
-         (setf new-node-name
-               (subseq
-                new-node-name 0
-                (- (length new-node-name) 1)))
-         (update-completions canvas)))
+       (backspace new-node))
       (#\Rubout ; delete-key
        (delete-selected-nodes canvas))
       (#\     ; copy
@@ -318,14 +284,14 @@
        (setf key-move t)
        (incf position-x *grid-size*))
       (:key-up 
-       (if (not (string= new-node-name ""))
-           (decf completions-select)
+       (if (not (is-empty-p new-node))
+           (select new-node -1)
            (progn
              (setf key-move t)
              (incf position-y (- *grid-size*)))))
       (:key-down
-       (if (not (string= new-node-name ""))
-           (incf completions-select)
+       (if (not (is-empty-p new-node))
+           (select new-node 1)
            (progn
              (setf key-move t)
              (incf position-y *grid-size*)))))
@@ -342,18 +308,12 @@
 
 (defmethod keyboard ((canvas canvas) key)
   ;; (print key)
-  (with-slots (window new-node-name completions) canvas
+  (with-slots (window new-node) canvas
     (with-slots (ctrl alt) window
       (cond
         (ctrl ())
         (alt  ())
-        (t
-         (ignore-errors 
-           (setf new-node-name
-                 (concatenate 'string
-                              new-node-name
-                              (list key))))
-         (update-completions canvas))))))
+        (t (keyboard new-node key))))))
 
 (defmethod keyboard-up ((canvas canvas) key))
 
@@ -424,8 +384,7 @@
                pointer-x pointer-y
                zoom
                camera-x camera-y 
-               nodes nodes-at-screen new-node-name
-               completions-select completions)
+               nodes nodes-at-screen new-node)
       canvas
     
     (gl:scale zoom zoom 0)
@@ -470,22 +429,12 @@
         (aligned-quad-shape x y 0 w h)))
 
                                         ; new node
-    (when (not (string= new-node-name ""))
-      (let ((node (create-node :name new-node-name
-                               :x position-x
-                               :y position-y)))
-        (setf (slot-value node 'color) '(0 0 0 0.75))
-        (draw-node node t)))
-    
-                                        ; completion list
-    (let ((count -1)
-          (y (+ position-y (* *node-height* 1.5))))
-      (dolist (comp completions)
-        (if (= completions-select (incf count))
-            (apply #'gl:color *normal-color*)
-            (apply #'gl:color *dimm-color*))
-        (text comp position-x (incf y (* *node-height* 1.1))
-              *node-text-height* 0)))
+    (unless (is-empty-p new-node)
+      (with-slots (x y) new-node
+        (setf x position-x
+              y position-y)
+        ;; (setf (slot-value node 'color) '(0 0 0 0.75))
+        (draw-node new-node t)))
     
                                         ; overlay
     (with-slots (width height) window

@@ -24,6 +24,7 @@
                 "shapes"
                 "text"
                 "node"
+                "new-node"
                 "evaluation"
                 "writer"
                 "file-dialog"
