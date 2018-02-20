@@ -117,10 +117,11 @@
                 (princ-to-string args))))))
 
 (defmethod draw-args-list ((node node))
-  (with-slots (x y childs) node
+  (with-slots (x y name childs) node
     (apply #'gl:color *dimm-color*)
-    (text (args-list node) x (+ y (* *node-height* 2))
-          (* *node-text-height* 0.7) 0)
+    (if (stringp name)
+        (text (args-list node) x (+ y (* *node-height* 2))
+              (* *node-text-height* 0.7) 0))
                                         ; childs numbering
     (let ((count 0))
       (dolist (child childs)
