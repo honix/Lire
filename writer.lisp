@@ -10,7 +10,12 @@
 
 (defmethod compose-poses ((head node))
   (with-slots (x y childs) head
-    (cons (cons x y) (mapcar #'compose-poses childs))))
+    (cons (if *fragment*
+              (let ((p-x (slot-value (canvas) 'position-x))
+                    (p-y (slot-value (canvas) 'position-y)))
+                (cons (- x p-x) (- y p-y)))
+              (cons x y))
+          (mapcar #'compose-poses childs))))
 
 (defmethod nodes-and-poses ((head node))
   (list
@@ -22,17 +27,6 @@
     (write-to-string
      (mapcar #'nodes-and-poses heads)
      :pretty t)))
-
-;; Some ugly getters ~-~
-
-(defmacro canvas ()
-  '(first (slot-value *lire* 'childs)))
-
-(defmacro nodes ()
-  "Ugly pump"
-  '(slot-value (canvas) 'nodes))
-
-;; //
 
 (defun write-lire-to-file (path)
   (format t "~%Writing ~s" path)
@@ -53,7 +47,7 @@
 
 (defun load-lire-from-file (path)
   (format t "~%Loading ~s" path)
-  (let ((nodes-and-poses 
+  (let ((nodes-and-poses
          (handler-case
              (with-open-file (in path)
                (read in))

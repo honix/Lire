@@ -162,16 +162,22 @@ horizontaly equal, sort it by vertical (from upper)"
                           (< ay by)
                           (< ax bx)))))))))
 
+(defparameter *fragment* nil)
+
 (defmethod find-heads ((node node))
   "Find all tree-heads linked to node"
   (labels ((find-head-in (node &optional (depth 0))
              (when (> depth 1024)
                (error "Can't find some heads: looping structures are not allowed"))
              (with-slots (parents) node
-               (if parents
-                   (mapcar (lambda (p) (find-head-in p (1+ depth)))
-                           parents)
-                   node))))
+               (let ((l-parents (if *fragment*
+                                    (intersection
+                                     parents
+                                     (slot-value (canvas) 'selected-nodes))
+                                    parents)))
+                 (if l-parents
+                     (mapcar (lambda (p) (find-head-in p (1+ depth))) l-parents)
+                     node)))))
     (remove-duplicates (flatten (find-head-in node)))))
 
 (defmethod send-message-to-heads ((node node) message)

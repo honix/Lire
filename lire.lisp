@@ -19,6 +19,18 @@
 
 (in-package :lire)
 
+
+;;; Bad things here
+
+(defmacro canvas ()
+  '(first (slot-value *lire* 'childs)))
+
+(defmacro nodes ()
+  '(slot-value (canvas) 'nodes))
+
+;;; end
+
+
 (dolist (file '("settings"
                 "utils"
                 "shapes"
@@ -35,6 +47,7 @@
   (load file))
 
 (defparameter *lire* (make-instance 'lire-window))
+
 
 (bordeaux-threads:make-thread
  (lambda () (glut:display-window *lire*))

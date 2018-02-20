@@ -117,15 +117,19 @@
     (repose canvas)))
 
 (defmethod inject-nodes ((canvas canvas) nodes-and-poses &key clear)
-  (when clear (clear canvas))
-  (with-slots (new-node position-x position-y) canvas
-    (labels ((inject-tree (nodes poses &key parent)
-               (let* ((name (car nodes))
-                      (pose (car poses))
-                      (x    (car pose))
-                      (y    (cdr pose)))
-                 (setf position-x x position-y y)
-                 (set-new-node new-node name x y)
+  (with-slots (new-node selected-nodes position-x position-y) canvas
+    (when clear (clear canvas))
+    (let ((in-position-x position-x)
+          (in-position-y position-y))
+      (labels ((inject-tree (nodes poses &key parent)
+                 (let* ((name (car nodes))
+                        (pose (car poses))
+                        (x    (+ (car pose) (if *fragment* in-position-x 0)))
+                        (y    (+ (cdr pose) (if *fragment* in-position-y 0))))
+                   ;; set positions to check overlapping
+                   (setf position-x x
+                         position-y y)
+                   (set-new-node new-node name x y))
                  (let ((last-node (insert-new-node canvas :link nil)))
                    (with-slots (parents childs) last-node
                      (when parent
@@ -136,13 +140,15 @@
                                                          :parent last-node))
                                           (cdr nodes)
                                           (cdr poses))))
-                   last-node))))
-      (mapc (lambda (tree)
-              (let ((nodes (cadr (member :nodes tree)))
-                    (poses (cadr (member :poses tree))))
-                (when (and nodes poses)
+                   last-node)))
+        (mapc (lambda (tree)
+                (let ((nodes (cadr (member :nodes tree)))
+                      (poses (cadr (member :poses tree))))
+                  (when (and nodes poses)
                     (inject-tree nodes poses))))
-            nodes-and-poses))))
+              nodes-and-poses))
+      (setf position-x in-position-x
+            position-y in-position-y))))
 
 ;;;
 ;;
@@ -299,9 +305,11 @@
       (#\Rubout ; delete-key
        (delete-selected-nodes canvas))
       (#\     ; copy
-       (setf clipboard (write-lire selected-nodes)))
+       (let ((*fragment* t))
+         (setf clipboard (write-lire selected-nodes))))
       (#\     ; paste
-       (print clipboard))
+       (let ((*fragment* t))
+         (inject-nodes canvas (read-from-string clipboard))))
       
       (#\
        (connect-selected canvas))
