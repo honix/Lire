@@ -163,10 +163,13 @@ horizontaly equal, sort it by vertical (from upper)"
 
 (defmethod find-heads ((node node))
   "Find all tree-heads linked to node"
-  (labels ((find-head-in (node)
+  (labels ((find-head-in (node &optional (depth 0))
+             (when (> depth 1024)
+               (error "Can't find some heads: looping structures are not allowed"))
              (with-slots (parents) node
                (if parents
-                   (mapcar #'find-head-in parents)
+                   (mapcar (lambda (p) (find-head-in p (1+ depth)))
+                           parents)
                    node))))
     (remove-duplicates (flatten (find-head-in node)))))
 
@@ -189,7 +192,8 @@ horizontaly equal, sort it by vertical (from upper)"
               (when message (setf message nil)))
             (handler-case
                 (send-message-to-heads child "?")
-              (condition () ; infinity structure catch
+              (condition (c) ; infinity structure catch
+                (format t "~%~a" c)
                 (pop parent-childs)
                 (pop child-parents)))
             (sort-childs parent))))))
