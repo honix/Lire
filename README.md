@@ -4,13 +4,13 @@
 *"Maybe if lisp started today, we would a syntax of lisp look like trees"* -- **Hal Abelson** ([1986 lecture](https://www.youtube.com/watch?v=XYKRVNQ_MqE&feature=youtu.be&t=34m33s))
 
 ## Status
-Refactoring step is done and now it seems stable.
-Next step is to implement copy\paste and save\load functionality. To make it usable i will make some UI around it.
+Copy/Paste and Save/Load functions is done.
+I need to shake some code to better fit in OOP and then reimplement text rendering to drop huge sdl2 dependencies.
 
 ## In short
 Lire is a lisp expressions visual editor, this allows you to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree). It runs on top of Common Lisp.
 
-Im doing diploma on this topic. Lire is work in progress project.
+Lire is work in progress project. It is also my diploma thesis.
 
 ## Modeling list
 Try to enter
@@ -48,6 +48,8 @@ Action | Bind
 Place cursor (blue cross) or select node | Left-mouse-button click
 Select area or drag node | Left-mouse-button drag
 Accumulative select | Shift
+Copy selected nodes | Ctrl-C
+Paste copied nodes | Ctrl-V
 Pan | Right-mouse-button drag
 Zoom | Scroll
 Create new node | (enter node name) Enter
@@ -57,7 +59,7 @@ Switch to last node | Enter
 Evaluate tree | Tab or Double-left click
 Delete node | Delete
 Connect nodes | Right-mouse-button drag from children to parent
-Connect selected (last is a parent)| Key-Pad-7
-Lost connections | Key-Pad-1
-Move cursor up & down | Key-Pad-8 & Key-Pad-2
-Move cursor left & right | Key-Pad-4 & Key-Pad-6
+Connect selected (last is a parent)| Ctrl-L
+Lost connections | Ctrl-K
+Move cursor up & down | Up-arrow & Down-arrow
+Move cursor left & right | Left-arrow & Right-arrow
