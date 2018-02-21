@@ -21,9 +21,9 @@
               (:load ".\\filedialog\\windows\\opendialog.exe")
               (:save ".\\filedialog\\windows\\savedialog.exe"))))
       (uiop:run-program command :output out)
-      (string-trim '(#\NewLine #\) (get-output-stream-string out)))))
+      (string-trim '(#\NewLine #\
+) (get-output-stream-string out)))))
 
-;; be aware if user has not install zenity or smth
 
 (defun save-lire ()
   (let ((path (file-dialog :save)))
