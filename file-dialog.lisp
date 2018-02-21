@@ -15,9 +15,9 @@
           (command
            (case operation
              (:load
-              "zenity --file-selection --title=Load")
+              "./filedialog/linux/opendialog")
              (:save
-              "zenity --file-selection --title=Save --save --confirm-overwrite")
+              "./filedialog/linux/savedialog")
              (t (error "Use :load or :save key")))))
       (uiop:run-program command :output out)
       (string-trim '(#\NewLine) (get-output-stream-string out)))
