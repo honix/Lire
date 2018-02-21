@@ -21,8 +21,7 @@
               (:load ".\\filedialog\\windows\\opendialog.exe")
               (:save ".\\filedialog\\windows\\savedialog.exe"))))
       (uiop:run-program command :output out)
-      (string-trim '(#\NewLine #\
-) (get-output-stream-string out)))))
+      (string-trim '(#\Return #\Linefeed) (get-output-stream-string out)))))
 
 
 (defun save-lire ()
