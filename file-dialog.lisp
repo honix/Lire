@@ -10,19 +10,18 @@
                     (case (slot-value e 'uiop/run-program::code)
                       (1 (invoke-restart 'continue)) ; unexpected exit
                       (t (error e)))))) ; something serious
-    #+linux
     (let ((out (make-string-output-stream))
           (command
-           (case operation
-             (:load
-              "./filedialog/linux/opendialog")
-             (:save
-              "./filedialog/linux/savedialog")
-             (t (error "Use :load or :save key")))))
+           #+linux
+            (case operation
+              (:load "./filedialog/linux/opendialog")
+              (:save "./filedialog/linux/savedialog"))
+            #+windows
+            (case operation
+              (:load ".\\filedialog\\windows\\opendialog.exe")
+              (:save ".\\filedialog\\windows\\savedialog.exe"))))
       (uiop:run-program command :output out)
-      (string-trim '(#\NewLine) (get-output-stream-string out)))
-    #+windows
-    (princ "Windows dialog not implemented yet")))
+      (string-trim '(#\NewLine #\) (get-output-stream-string out)))))
 
 ;; be aware if user has not install zenity or smth
 
