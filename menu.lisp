@@ -5,9 +5,7 @@
 (in-package :lire)
 
 (defclass menu (widget)
-  ((x :initform 0) (y :initform 0)
-   
-   (buttons :initform
+  ((buttons :initform
             `(("save" ,#'save-lire)
               ("load" ,#'load-lire)))))
 

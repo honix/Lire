@@ -9,6 +9,8 @@
    (parent :type 'widget)
    (childs :initform ())
 
+   (x      :initform 0)
+   (y      :initform 0)
    (width  :initform 0)
    (height :initform 0)))
 
