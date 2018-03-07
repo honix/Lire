@@ -13,8 +13,14 @@
 ;;;
 
 (defun e-eval (form &optional echo)
-  (when echo (print form))
-  (ignore-errors (eval form)))
+  (when echo
+    (format t "Evaluating new form:~%")
+    (format t "  IN  >>>~%    ~s~%" form))
+  (ignore-errors
+    (let ((result (eval form)))
+      (when echo
+        (format t "  OUT <<<~%    ~s~%" result))
+      result)))
 
 (defun function-symbol-p (symbol)
   (e-eval

@@ -200,7 +200,7 @@ horizontaly equal, sort it by vertical (from upper)"
             (handler-case
                 (send-message-to-heads child "?")
               (condition (c) ; infinity structure catch
-                (format t "~%~a" c)
+                (format t "~a~%" c)
                 (pop parent-childs)
                 (pop child-parents)))
             (sort-childs parent))))))

@@ -29,14 +29,14 @@
      :pretty t)))
 
 (defun write-lire-to-file (path)
-  (format t "~%Writing ~s" path)
+  (format t "Writing ~s~%" path)
   (handler-case
       (with-open-file (out path
                            :direction :output
                            :if-exists :supersede
                            :if-does-not-exist :create)
         (princ (write-lire (nodes)) out))
-    (condition (e) (format t "~%Error while writing: ~a" e))))
+    (condition (e) (format t "Error while writing: ~a~%" e))))
 
 (defun valid-data-p (nodes-and-poses)
   "Stupid and broken check for validity"
@@ -46,13 +46,13 @@
              (find :poses first-tree)))))
 
 (defun load-lire-from-file (path)
-  (format t "~%Loading ~s" path)
+  (format t "Loading ~s~%" path)
   (let ((nodes-and-poses
          (handler-case
              (with-open-file (in path)
                (read in))
-           (condition (e) (format t "~%Error while loading: ~a" e)))))
-    (print nodes-and-poses)
+           (condition (e) (format t "Error while loading: ~a~%" e)))))
+    (format t "~a~%" nodes-and-poses)
     (if (valid-data-p nodes-and-poses)
         (inject-nodes (canvas) nodes-and-poses :clear t)
-        (format t "~%Error while reading"))))
+        (format t "Error while reading~%"))))
