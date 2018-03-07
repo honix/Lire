@@ -68,20 +68,18 @@
   (with-slots (x y color childs) node
     (dolist (child childs)
       (with-slots ((cx x) (cy y)) child
-        (apply #'gl:color color)
+        (apply #'gl:color *dimm-color*)
         (gl:line-width wire-width)
         (simple-line x y cx cy)
-        (apply #'gl:color *background-color*)
-        (let* ((gap        0.2)
-               (pulse     (mod (/ (get-time) 2) (+ 1 gap)))
-               (pulse-in  (max 0 (- pulse gap)))
-               (pulse-out (min 1 pulse)))
-          (gl:line-width (/ wire-width 3))
+        (apply #'gl:color color)
+        (let* ((dx (- x cx))
+               (dy (- y cy))
+               (gap       0.5))
+          ;; (gl:line-width (/ wire-width 3))
           (simple-line
-           (+ cx (* (- x cx) pulse-in))
-           (+ cy (* (- y cy) pulse-in))
-           (+ cx (* (- x cx) pulse-out))
-           (+ cy (* (- y cy) pulse-out))))))))
+           x y
+           (+ cx (* dx gap))
+           (+ cy (* dy gap))))))))
 
 (defmethod draw-selection ((node node) &optional first)
   (with-slots (x y width) node

@@ -17,7 +17,7 @@
   (:default-initargs :width *initial-width* :height *initial-height*
                      :pos-x 100 :pos-y 100
                      :mode '(:double :rgb :stencil :multisample)
-                     :tick-interval 16
+                     ;; :tick-interval 16
                      :title "Lire"))
 
 ;;;
@@ -68,11 +68,10 @@
            (draw child (eq child active-child)))
       
       (glut:swap-buffers))))
-  
-(defmethod glut:idle ((w lire-window))
+
+'(defmethod glut:idle ((w lire-window))
   ;; Updates
-  ;(glut:post-redisplay)
-  )
+  (glut:post-redisplay))
 
 (defmethod glut:tick ((w lire-window))
   (with-simple-restart (tick-restart "Tick")
@@ -83,16 +82,19 @@
     (let ((dx (- mouse-x x))
           (dy (- mouse-y y)))
       (setf mouse-x x mouse-y y)
-      (motion active-child x y dx dy))))
+      (motion active-child x y dx dy)))
+  (glut:post-redisplay))
 
 (defmethod glut:motion ((w lire-window) x y)
   (with-simple-restart (motion-restart "Motion")
-    (mouse-motion w x y)))
+    (mouse-motion w x y))
+  (glut:post-redisplay))
 
 (defmethod glut:passive-motion ((w lire-window) x y)
   (with-simple-restart (passive-motion-restart "Passive-motion")
     (with-slots (childs active-child) w
-      (mouse-motion w x y))))
+      (mouse-motion w x y)))
+  (glut:post-redisplay))
 
 (defmethod glut:mouse ((w lire-window) button state x y)
   (with-simple-restart (mouse-restart "Mouse")
@@ -113,7 +115,8 @@
          (mouse-whell active-child 1))
         (:wheel-down
          (mouse-whell active-child -1)))
-      (mouse active-child button state x y))))
+      (mouse active-child button state x y)))
+  (glut:post-redisplay))
 
 (defmethod glut:mouse-wheel ((w lire-window) button pressed x y)
   ;; This method works on windows. Linux sends all mouse events to GLUT:MOUSE
@@ -121,7 +124,8 @@
     (with-slots (active-child) w
       (case pressed
         ((:up   :wheel-up)   (mouse-whell active-child 1))
-        ((:down :wheel-down) (mouse-whell active-child -1))))))
+        ((:down :wheel-down) (mouse-whell active-child -1)))))
+  (glut:post-redisplay))
 
 (defmethod glut:special ((w lire-window) special-key x y)
   ;; Catches :KEY-F1 :KEY-LEFT-SHIFT :KEY-HOME :KEY-LEFT etc..
@@ -134,7 +138,8 @@
          (setf ctrl t))
         ((:key-left-alt :key-right-alt)
          (setf alt t)))
-      (special-key active-child special-key))))
+      (special-key active-child special-key)))
+  (glut:post-redisplay))
 
 (defmethod glut:special-up ((w lire-window) special-key x y)
   (with-simple-restart (special-key-up-restart "Special-key-up")
@@ -146,7 +151,8 @@
          (setf ctrl nil))
         ((:key-left-alt :key-right-alt)
          (setf alt nil)))
-      (special-key-up active-child special-key))))
+      (special-key-up active-child special-key)))
+  (glut:post-redisplay))
 
 (defmethod glut:keyboard ((w lire-window) key x y)
   ;; Catches alphanumeric keys + #\Return #\Backspace #\Tab and etc..
@@ -154,11 +160,13 @@
     (with-slots (active-child) w
       (if (graphic-char-p key)
           (keyboard active-child key)
-          (special-key active-child key)))))
+          (special-key active-child key))))
+  (glut:post-redisplay))
 
 (defmethod glut:keyboard-up ((w lire-window) key x y)
   (with-simple-restart (keyboard-up-restart "Keyboard-up")
     (with-slots (active-child) w
       (if (graphic-char-p key)
           (keyboard-up active-child key)
-          (special-key-up active-child key)))))
+          (special-key-up active-child key))))
+  (glut:post-redisplay))

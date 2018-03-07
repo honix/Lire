@@ -44,7 +44,10 @@
                   (write-to-string result :length 16)))))))
 
 (defmethod eval-node-threaded ((node node))
-  (bordeaux-threads:make-thread (lambda () (eval-node node))))
+  (bordeaux-threads:make-thread
+   (lambda ()
+     (eval-node node)
+     (bt:interrupt-thread *lire-ui-thread* #'glut:post-redisplay))))
 
 (defun heads (nodes)
   (if (listp nodes)
