@@ -8,7 +8,7 @@ Copy/Paste and Save/Load functions is done.
 I need to shake some code to better fit in OOP and then reimplement text rendering to drop huge sdl2 dependencies.
 
 ## In short
-Lire is a lisp expressions visual editor, this allows you to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree). It runs on top of Common Lisp.
+Lire is a Lisp expressions visual editor, it allows you to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree). It runs on top of Common Lisp.
 
 Lire is work in progress project. It is also my diploma thesis.
 
@@ -20,9 +20,9 @@ This will make list
 ```(+ 10 (* 25 2))```
 
 ## Run from source
-Before run Lire check that you dependencies ready
+Lire is well tested to work with [SBCL](http://www.sbcl.org). Before run Lire check that you dependencies ready:
 
-**Linux**
+**Linux (x86 and x64)**
 
 - Ubuntu (apt-get): ```sudo apt-get install libffi6 libffi-dev libsdl2 libsdl2-image libsdl2-ttf```
 
@@ -30,13 +30,13 @@ Before run Lire check that you dependencies ready
 
 - ArchLinux (pacman): ```sudo pacman -S libffi sdl2 sdl2_ttf sdl2_image```
 
-**Windows**
+**Windows (x86)**
 
-- Install [MinGW](https://sourceforge.net/projects/mingw/files/Installer) with ```mingw32-base``` package, and copy ```ffi.h``` and ```ffitarget.h``` to ```...\MinGW\include```
+- Install [MinGW](https://sourceforge.net/projects/mingw/files/Installer) with ```mingw32-base``` package, and copy ```ffi.h``` and ```ffitarget.h``` from ```deps/windows``` to ```...\MinGW\include```
 
-- Add ```...\MinGW\bin``` to PATH environment variable (make able common lisp to call ```gcc```)
+- Add ```...\MinGW\bin``` to the PATH environment variable (make able Common Lisp to call ```gcc```)
 
-- Put dll's to your SBCL / CCL folder, right with *.exe (for x86 there is collected already, check ```deps/windows-deps.zip```)
+- Put the dll's to your SBCL folder, right with ```sbcl.exe``` (for x86 there is collected already, check ```deps/windows```)
 
 **Lets go**
 

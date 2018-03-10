@@ -46,9 +46,16 @@
                 "window"))
   (load file))
 
-(defparameter *lire* (make-instance 'lire-window))
+(defparameter *lire* nil)
+(defparameter *lire-ui-thread* nil)
 
-(defparameter *lire-ui-thread*
-  (bordeaux-threads:make-thread
-   (lambda () (glut:display-window *lire*))
-   :name "Lire-UI-thread"))
+(defun run-lire ()
+  (format t "Running lire..~%")
+  (setf *lire*
+        (make-instance 'lire-window)
+        *lire-ui-thread*
+        (bordeaux-threads:make-thread
+         (lambda () (glut:display-window *lire*))
+         :name "Lire-UI-thread")))
+
+(run-lire)

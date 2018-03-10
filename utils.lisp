@@ -64,3 +64,19 @@
         ((funcall test l) (list l))
         (t (loop for a in l nconc (flatten a :test test)))))
 
+;;;
+;;  Saving-lisp (not really working yet)
+;;;
+
+(defun save-lisp ()
+  "Make exebutable"
+  #+sbcl
+  (sb-ext:save-lisp-and-die
+   (concatenate 'string
+                "builds/Lire-" (software-type) ".exe")
+   :toplevel (lambda ()
+               (format nil "Image loaded.")
+               (run-lire))
+   :executable t
+   :application-type :gui))
+
