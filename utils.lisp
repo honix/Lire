@@ -2,6 +2,21 @@
 ;; Lire - utils
 ;;
 
+;; Move this section to new file
+
+;;
+;; Lire-user
+;;
+
+(in-package :cl-user)
+
+;; Graham's alambda
+(defmacro alambda (parms &body body)
+  `(labels ((self ,parms ,@body))
+     #'self))
+
+;; end
+
 (in-package :lire)
 
 (defun get-time ()
