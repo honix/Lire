@@ -240,21 +240,33 @@ horizontaly equal, sort it by vertical (from upper)"
           parents ())))
 
 (defmethod draw-block ((node node))
-  (with-slots (y color parents block-left block-right block-bottom) node
+  (with-slots (x y color parents block-left block-right block-bottom) node
     (when (null parents)
-      (apply #'gl:color (list (first color) (second color) (third color) 0.15))
+      (apply #'gl:color *dimm-color*)
+      (text-align (format nil "FUN-~a-~a" x y)
+                  (+ block-right *node-height*) y  *node-text-height* 0)
+      (apply #'gl:color (list (first color) (second color) (third color) 0.1))
+      ;; base
       (aligned-quad-shape
        block-left
-       y
+       (- y *node-height*)
        0
        (- block-right block-left)
-       (- block-bottom y))
+       (+ (- block-bottom y) (* *node-height* 2)))
+      ;; top bar
       (aligned-quad-shape
        block-left
-       y
+       (- y *node-height*)
        0
        (- block-right block-left)
-       *node-height*))))
+       (* *node-height* 2))
+      ;; bottom bar
+      (aligned-quad-shape
+       block-left
+       (- block-bottom *node-height*)
+       0
+       (- block-right block-left)
+       (* *node-height* 2)))))
 
 (defmethod draw-node ((node node) show-name)
   (with-slots (name x y width color message error parents
