@@ -7,7 +7,7 @@
 (defmethod compose-code ((node node))
   "Make lisp form"
   (let ((args))
-    (labels 
+    (labels
         ((compose (node)
              (with-slots (name parents childs) node
                (if (stringp name)
@@ -34,7 +34,8 @@
                                                                (slot-value node 'y)))))
                             (pushnew arg args)
                             arg))))))))
-      (list (compose node) args))))
+      ;; actually, args will be sorted by x position
+      (list (compose node) (reverse args)))))
 
 (defmethod eval-node ((node node))
   (with-slots (message error name x y) node
@@ -77,6 +78,6 @@
     (mapc #'eval-node-threaded heads)
     (mapc #'update-tree heads)))
 
-;(eval (list (read-from-string "+") 
+;(eval (list (read-from-string "+")
 ;            (read-from-string "2")
 ;            (read-from-string "5")))
