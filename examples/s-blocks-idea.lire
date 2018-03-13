@@ -1,0 +1,52 @@
+((:NODES ("; and changes are projected to all copies") :POSES ((1650 . 400)))
+ (:NODES ("; editable any where") :POSES ((1650 . 350)))
+ (:NODES ("; content for the block") :POSES ((1650 . 300)))
+ (:NODES (:DOT) :POSES ((850 . 700))) (:NODES (:DOT) :POSES ((650 . 700)))
+ (:NODES (:DOT ("*" (:DOT (:DOT (:DOT))) (:DOT (:DOT (:DOT))))) :POSES
+  ((850 . 450)
+   ((850 . 500) ((800 . 550) ((850 . 600) ((850 . 650))))
+    ((900 . 550) ((850 . 600) ((850 . 650)))))))
+ (:NODES (:DOT ("*" (:DOT (:DOT (:DOT))) (:DOT (:DOT (:DOT))))) :POSES
+  ((650 . 450)
+   ((650 . 500) ((600 . 550) ((650 . 600) ((650 . 650))))
+    ((700 . 550) ((650 . 600) ((650 . 650)))))))
+ (:NODES (:DOT ("+" (:DOT) (:DOT))) :POSES
+  ((750 . 300) ((750 . 350) ((700 . 400)) ((800 . 400)))))
+ (:NODES (:DOT) :POSES ((750 . 250)))
+ (:NODES ("; as we want simplest abstraction to achive") :POSES ((500 . 50)))
+ (:NODES ("; those block can be inlined in to bigger blocks") :POSES
+  ((800 . 150)))
+ (:NODES (:DOT ("+" (:DOT) (:DOT))) :POSES
+  ((200 . 350) ((200 . 400) ((150 . 450)) ((250 . 450)))))
+ (:NODES (:DOT ("*" (:DOT (:DOT (:DOT))) (:DOT (:DOT (:DOT))))) :POSES
+  ((400 . 300)
+   ((400 . 350) ((350 . 400) ((400 . 450) ((400 . 500))))
+    ((450 . 400) ((400 . 450) ((400 . 500)))))))
+ (:NODES ("; here is idea of s-blocks") :POSES ((250 . 100)))
+ (:NODES ("; this is simple blocks") :POSES ((300 . 150)))
+ (:NODES
+  (:DOT
+   (:DOT
+    ("+"
+     (:DOT (:DOT ("*" (:DOT (:DOT (:DOT ("5")))) (:DOT (:DOT (:DOT ("5")))))))
+     (:DOT
+      (:DOT ("*" (:DOT (:DOT (:DOT ("12")))) (:DOT (:DOT (:DOT ("12"))))))))))
+  :POSES
+  ((1200 . 250)
+   ((1200 . 300)
+    ((1200 . 350)
+     ((1150 . 400)
+      ((1100 . 450)
+       ((1100 . 500)
+        ((1050 . 550) ((1100 . 600) ((1100 . 650) ((1100 . 700)))))
+        ((1150 . 550) ((1100 . 600) ((1100 . 650) ((1100 . 700))))))))
+     ((1250 . 400)
+      ((1300 . 450)
+       ((1300 . 500)
+        ((1250 . 550) ((1300 . 600) ((1300 . 650) ((1300 . 700)))))
+        ((1350 . 550) ((1300 . 600) ((1300 . 650) ((1300 . 700))))))))))))
+ (:NODES ("; as a top lisp form") :POSES ((250 . 600)))
+ (:NODES ("; they will be visualy") :POSES ((250 . 650)))
+ (:NODES ("; abstracted as blocks with blocks inside") :POSES ((250 . 700)))
+ (:NODES ("; so the build-in forms accepted as atoms of the blocks") :POSES
+  ((250 . 800))))

@@ -16,7 +16,11 @@
    (error   :initform nil)
    
    (parents :initform ())
-   (childs  :initform ())))
+   (childs  :initform ())
+
+   (block-left   :initform 0)
+   (block-right  :initform 0)
+   (block-bottom :initform 0)))
 
 (defmethod node-update ((node node))
   (with-slots (width name color) node
@@ -38,10 +42,28 @@
   node)
 
 (defmethod update-tree ((node node))
-  (with-slots (childs) node
+  (with-slots (parents childs) node
     (node-update node)
+    (when (null parents)
+      (update-block node))
     (when childs
-      (mapc #'update-tree childs))))
+        (mapc #'update-tree childs))))
+
+(defmethod update-block ((node node))
+  (with-slots (x y width childs
+                 (left block-left) (right block-right) (bottom block-bottom))
+      node
+    (setf left   (- x width *node-height*)
+          right  (+ x width *node-height*)
+          bottom y)
+    (when childs
+        (mapc (lambda (child)
+                (update-block child)
+                (with-slots (block-left block-right block-bottom) child
+                  (setf left   (min left   block-left)
+                        right  (max right  block-right)
+                        bottom (max bottom block-bottom))))
+              childs))))
 
 (defun create-node (&key name x y)
   (let ((node (make-instance 'node
@@ -178,6 +200,9 @@ horizontaly equal, sort it by vertical (from upper)"
                      node)))))
     (remove-duplicates (flatten (find-head-in node)))))
 
+(defun find-heads-in-nodes (nodes)
+  (remove-duplicates (flatten (mapcar #'find-heads nodes))))
+
 (defmethod send-message-to-heads ((node node) message)
   (dolist (head (find-heads node))
     (with-slots (message) head
@@ -214,9 +239,27 @@ horizontaly equal, sort it by vertical (from upper)"
     (setf childs  ()
           parents ())))
 
+(defmethod draw-block ((node node))
+  (with-slots (y color parents block-left block-right block-bottom) node
+    (when (null parents)
+      (apply #'gl:color (list (first color) (second color) (third color) 0.15))
+      (aligned-quad-shape
+       block-left
+       y
+       0
+       (- block-right block-left)
+       (- block-bottom y))
+      (aligned-quad-shape
+       block-left
+       y
+       0
+       (- block-right block-left)
+       *node-height*))))
 
 (defmethod draw-node ((node node) show-name)
-  (with-slots (name x y width color message error parents) node
+  (with-slots (name x y width color message error parents
+                    block-left block-right block-bottom)
+      node
     (when (stringp name)
       (apply #'gl:color color)
       (quad-shape x y 0 width *node-height*))
