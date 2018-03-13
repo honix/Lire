@@ -63,7 +63,7 @@
 
 (defmethod delete-selected-nodes ((canvas canvas))
   (with-slots (nodes selected-nodes) canvas
-    (let ((heads (find-heads-in-nodes selected-nodes)))
+    (let ((heads (heads selected-nodes)))
       (mapc #'destroy-connections selected-nodes)
       (mapc #'update-block heads))
     (setf nodes          (set-difference nodes selected-nodes)
@@ -221,7 +221,7 @@
       (snap-node-to-grid selected)
       (with-slots (x y parents) selected
         (mapc #'sort-childs parents)))
-    (mapc #'update-block (find-heads-in-nodes selected-nodes))
+    (mapc #'update-block (heads selected-nodes))
     (when selector
       (setf selector nil)
       (let ((selected (remove-if-not
@@ -387,7 +387,7 @@
           (with-slots (x y) node
             (incf x (- pointer-x selector-x))
             (incf y (- pointer-y selector-y))))
-        (mapc #'update-block (find-heads-in-nodes selected-nodes))
+        (mapc #'update-block (heads selected-nodes))
         (setf selector-x pointer-x
               selector-y pointer-y))
       (when mouse-right

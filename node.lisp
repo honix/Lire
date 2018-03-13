@@ -18,6 +18,7 @@
    (parents :initform ())
    (childs  :initform ())
 
+   ;; (block-name   :initform " ")
    (block-left   :initform 0)
    (block-right  :initform 0)
    (block-bottom :initform 0)))
@@ -243,8 +244,8 @@ horizontaly equal, sort it by vertical (from upper)"
   (with-slots (x y color parents block-left block-right block-bottom) node
     (when (null parents)
       (apply #'gl:color *dimm-color*)
-      (text-align (format nil "FUN-~a-~a" x y)
-                  (+ block-right *node-height*) y  *node-text-height* 0)
+      ;; (text-align block-name
+      ;;             (+ block-right *node-height*) y  *node-text-height* 0)
       (apply #'gl:color (list (first color) (second color) (third color) 0.1))
       ;; base
       (aligned-quad-shape
