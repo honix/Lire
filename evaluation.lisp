@@ -29,9 +29,9 @@
                               `(values ,@(mapcar #'compose (sort-childs node)))
                                         ; short link
                               (compose (car childs)))
-                          (let ((arg (read-from-string (format nil "arg-~a-~a"
-                                                               (slot-value node 'x)
-                                                               (slot-value node 'y)))))
+                          (let ((arg (read-from-string (format nil "ARG-~a-~a"
+                                                               (/ (slot-value node 'x) *grid-size*)
+                                                               (/ (slot-value node 'y) *grid-size*)))))
                             (pushnew arg args)
                             arg))))))))
       ;; actually, args will be sorted by x position
@@ -46,7 +46,9 @@
       (let* ((eval   (multiple-value-list
                       (e-eval (if args
                                   `(defun ,(read-from-string
-                                            (format nil "FUN-~a-~a" x y))
+                                            (format nil "FUN-~a-~a"
+                                                    (/ x *grid-size*)
+                                                    (/ y *grid-size*)))
                                        ,args ,code)
                                   code)
                               :echo)))
