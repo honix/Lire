@@ -63,9 +63,7 @@
 
 (defmethod delete-selected-nodes ((canvas canvas))
   (with-slots (nodes selected-nodes) canvas
-    (let ((heads (heads selected-nodes)))
-      (mapc #'destroy-connections selected-nodes)
-      (mapc #'update-block heads))
+    (mapc #'destroy-connections selected-nodes)
     (setf nodes          (set-difference nodes selected-nodes)
           selected-nodes ())
     (repose canvas)))
@@ -103,10 +101,7 @@
             (when link
               (if selected-nodes
                   (progn
-                    (mapc (lambda (snode)
-                            (flip-connection snode node))
-                          selected-nodes)
-                    (mapc #'update-block (find-heads node))
+                    (flip-connection (car selected-nodes) node)
                     (incf position-x  *grid-size*))
                   (progn
                     (pushnew node selected-nodes)
@@ -145,7 +140,6 @@
                                                          :parent last-node))
                                           (cdr nodes)
                                           (cdr poses))))
-                   (update-block last-node)
                    last-node)))
         (mapc (lambda (tree)
                 (let ((nodes (cadr (member :nodes tree)))
@@ -221,7 +215,6 @@
       (snap-node-to-grid selected)
       (with-slots (x y parents) selected
         (mapc #'sort-childs parents)))
-    (mapc #'update-block (heads selected-nodes))
     (when selector
       (setf selector nil)
       (let ((selected (remove-if-not
@@ -317,6 +310,7 @@
       (#\     ; paste
        (let ((*fragment* t))
          (inject-nodes canvas (read-from-string clipboard))))
+      
       (#\
        (connect-selected canvas))
       (#\
@@ -387,18 +381,15 @@
           (with-slots (x y) node
             (incf x (- pointer-x selector-x))
             (incf y (- pointer-y selector-y))))
-        (mapc #'update-block (heads selected-nodes))
         (setf selector-x pointer-x
               selector-y pointer-y))
       (when mouse-right
         (if connecting-nodes
             (progn
-              (let ((dot (car nodes)))
-                (update-block dot)
-                (incf (slot-value dot 'x)
-                      (/ dx zoom -1))
-                (incf (slot-value dot 'y)
-                      (/ dy zoom -1))))
+              (incf (slot-value (car nodes) 'x)
+                    (/ dx zoom -1))
+              (incf (slot-value (car nodes) 'y)
+                    (/ dy zoom -1)))
             (progn
               (incf camera-x
                     (/ dx zoom))
@@ -458,8 +449,6 @@
     (simple-cross position-x position-y (/ *grid-size* 2))
 
                                         ; nodes
-    (mapc #'draw-block nodes)
-    
     (mapc (lambda (node)
             (draw-wires node
                         (floor (max (* zoom 10) 1))))
