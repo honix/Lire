@@ -15,6 +15,9 @@ Try to enter
 This will make list
 ```(+ 10 (* 25 2))```
 
+## Try it out!
+Check the [releases page](https://github.com/honix/Lire/releases). There is ready to go Windows executable, as it is little hard to build on this system.
+
 ## Run from source
 Lire is well tested to work with [SBCL](http://www.sbcl.org). Before run Lire check that you dependencies ready:
 
