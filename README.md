@@ -3,10 +3,6 @@
 
 *"Maybe if lisp started today, we would a syntax of lisp look like trees"* -- **Hal Abelson** ([1986 lecture](https://www.youtube.com/watch?v=XYKRVNQ_MqE&feature=youtu.be&t=34m33s))
 
-## Status
-Copy/Paste and Save/Load functions is done.
-I need to shake some code to better fit in OOP and then reimplement text rendering to drop huge sdl2 dependencies.
-
 ## In short
 Lire is a Lisp expressions visual editor, it allows you to write programs using kind of [abstract syntax tree (AST)](https://en.wikipedia.org/wiki/Abstract_syntax_tree). It runs on top of Common Lisp.
 
@@ -18,6 +14,9 @@ Try to enter
 
 This will make list
 ```(+ 10 (* 25 2))```
+
+## Try it out!
+Check the [releases page](https://github.com/honix/Lire/releases). There is ready to go Windows executable, as it is little hard to build on this system.
 
 ## Run from source
 Lire is well tested to work with [SBCL](http://www.sbcl.org). Before run Lire check that you dependencies ready:

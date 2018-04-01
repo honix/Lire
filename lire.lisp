@@ -49,13 +49,18 @@
 (defparameter *lire* nil)
 (defparameter *lire-ui-thread* nil)
 
-(defun run-lire ()
+(defun run-lire (&key (threaded t))
   (format t "Running lire..~%")
   (setf *lire*
         (make-instance 'lire-window)
         *lire-ui-thread*
-        (bordeaux-threads:make-thread
-         (lambda () (glut:display-window *lire*))
-         :name "Lire-UI-thread")))
+        (if threaded
+            (bordeaux-threads:make-thread
+                (lambda () (glut:display-window *lire*))
+                :name "Lire-UI-thread")
+            (sb-thread:main-thread))) ; hmm-umm
+  (unless threaded (glut:display-window *lire*)))
 
 (run-lire)
+; (save-lisp)
+

@@ -80,7 +80,7 @@
         (t (loop for a in l nconc (flatten a :test test)))))
 
 ;;;
-;;  Saving-lisp (not really working yet)
+;;  Saving-lisp
 ;;;
 
 (defun save-lisp ()
@@ -90,8 +90,9 @@
    (concatenate 'string
                 "builds/Lire-" (software-type) ".exe")
    :toplevel (lambda ()
-               (format nil "Image loaded.")
-               (run-lire))
+               (format t "Image loaded.~%")
+               (run-lire :threaded nil))
    :executable t
-   :application-type :gui))
+   ;:application-type :gui
+   ))
 
