@@ -171,7 +171,8 @@ horizontaly equal, sort it by vertical (from upper)"
                (let ((l-parents (if *fragment*
                                     (intersection
                                      parents
-                                     (slot-value (canvas) 'selected-nodes))
+                                     (slot-value (get-canvas *lire*)
+                                                 'selected-nodes))
                                     parents)))
                  (if l-parents
                      (mapcar (lambda (p) (find-head-in p (1+ depth))) l-parents)

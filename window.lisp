@@ -31,6 +31,10 @@
                         (make-instance 'menu)))
     (setf active-child (first childs))))
 
+(defmethod get-canvas ((w lire-window))
+  (with-slots (childs) w
+    (first childs)))
+
 (defmethod glut:display-window :before ((w lire-window))
   (sdl2-ttf:init)
   (clean-text-hash)

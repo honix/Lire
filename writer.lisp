@@ -10,12 +10,13 @@
 
 (defmethod compose-poses ((head node))
   (with-slots (x y childs) head
-    (cons (if *fragment*
-              (let ((p-x (slot-value (canvas) 'position-x))
-                    (p-y (slot-value (canvas) 'position-y)))
-                (cons (- x p-x) (- y p-y)))
-              (cons x y))
-          (mapcar #'compose-poses childs))))
+    (let ((canvas (get-canvas *lire*)))
+      (cons (if *fragment*
+                (let ((p-x (slot-value canvas 'position-x))
+                      (p-y (slot-value canvas 'position-y)))
+                  (cons (- x p-x) (- y p-y)))
+                (cons x y))
+            (mapcar #'compose-poses childs)))))
 
 (defmethod nodes-and-poses ((head node))
   (list
@@ -28,6 +29,13 @@
      (mapcar #'nodes-and-poses heads)
      :pretty t)))
 
+(defun valid-data-p (nodes-and-poses)
+  "Stupid and broken check for validity"
+  (or (eq nodes-and-poses ())
+      (let ((first-tree (car nodes-and-poses)))
+        (and (find :nodes first-tree)
+             (find :poses first-tree)))))
+
 (defun write-lire-to-file (path)
   (format t "Writing ~s~%" path)
   (handler-case
@@ -35,15 +43,8 @@
                            :direction :output
                            :if-exists :supersede
                            :if-does-not-exist :create)
-        (princ (write-lire (nodes)) out))
+        (princ (write-lire (slot-value (get-canvas *lire*) 'nodes)) out))
     (condition (e) (format t "Error while writing: ~a~%" e))))
-
-(defun valid-data-p (nodes-and-poses)
-  "Stupid and broken check for validity"
-  (or (eq nodes-and-poses ())
-      (let ((first-tree (car nodes-and-poses)))
-        (and (find :nodes first-tree)
-             (find :poses first-tree)))))
 
 (defun load-lire-from-file (path)
   (format t "Loading ~s~%" path)
@@ -54,5 +55,5 @@
            (condition (e) (format t "Error while loading: ~a~%" e)))))
     (format t "~a~%" nodes-and-poses)
     (if (valid-data-p nodes-and-poses)
-        (inject-nodes (canvas) nodes-and-poses :clear t)
+        (inject-nodes (get-canvas *lire*) nodes-and-poses :clear t)
         (format t "Error while reading~%"))))

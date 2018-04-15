@@ -22,7 +22,7 @@
 ;;;
 
 (defmethod mouse ((menu menu) button state x y)
-  (with-slots ((my y) buttons) menu
+  (with-slots (parent (my y) buttons) menu
     (when (and (eq button :left-button)
                (eq state :down))
       (let ((n (floor (/ (- y my) *menu-button-height*))))

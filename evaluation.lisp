@@ -4,7 +4,7 @@
 
 (in-package :lire)
 
-(defmethod compose-code ((node node) &optional from-list)
+(defmethod compose-code ((node node))
   "Make lisp form"
   (with-slots (name parents childs) node
     (if (stringp name)
@@ -18,7 +18,7 @@
                                         ; ~specials
         (case name
           (:list                        ; -> (child1 child2 ...)
-           (mapcar (lambda (n) (compose-code n t)) (sort-childs node)))
+           (mapcar #'compose-code (sort-childs node)))
           (:dot                         ; -> child1 child2 ...
            (if (cdr childs)
                                         ; multiple link
