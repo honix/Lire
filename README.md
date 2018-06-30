@@ -1,5 +1,5 @@
 # Lire
-![lire](https://github.com/honix/Lire/blob/master/wiki/pythagoras.png)
+![lire](https://github.com/honix/Lire/blob/master/wiki/specials-test.png)
 
 *"Maybe if lisp started today, we would a syntax of lisp look like trees"* -- **Hal Abelson** ([1986 lecture](https://www.youtube.com/watch?v=XYKRVNQ_MqE&feature=youtu.be&t=34m33s))
 
