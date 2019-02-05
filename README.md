@@ -25,7 +25,7 @@ Lire is well tested to work with [SBCL](http://www.sbcl.org). Before run Lire ch
 
 - Ubuntu (apt-get): ```sudo apt-get install libffi6 libffi-dev libsdl2 libsdl2-image libsdl2-ttf```
 
-- Fedora (dnf): ```sudo dnf install libffi libffi-dev SDL2 SDL2_image SDL2_ttf```
+- Fedora (dnf): ```sudo dnf install libffi libffi-devel SDL2 SDL2_image SDL2_ttf```
 
 - ArchLinux (pacman): ```sudo pacman -S libffi sdl2 sdl2_ttf sdl2_image```
 
